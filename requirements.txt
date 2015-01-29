@@ -1,0 +1,16 @@
+Flask==0.10.1
+Flask-OAuthlib==0.8.0
+Jinja2==2.7.3
+MarkupSafe==0.23
+Werkzeug==0.9.6
+argparse==1.2.1
+gevent==1.0.1
+greenlet==0.4.5
+gunicorn==19.1.1
+itsdangerous==0.24
+lxml==3.4.1
+oauthlib==0.7.2
+redis==2.10.3
+requests==2.5.1
+trello==0.9.1
+wsgiref==0.1.2
