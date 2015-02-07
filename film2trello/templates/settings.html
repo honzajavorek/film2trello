@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>ČSFD &rarr; Trello</title>
+    </head>
+    <body>
+        <h1>Nastavení</h1>
+        <p>
+            Nevím, na jaký Trello board to bude.
+        </p>
+        <form method="POST" action="{{ action_url }}">
+            {{ form.hidden_tag() }}
+            {{ form.trello_board_url.label }} {{ form.trello_board_url(size=20) }}
+            <input type="submit" value="Uložit">
+        </form>
+    </body>
+</html>
+
+
