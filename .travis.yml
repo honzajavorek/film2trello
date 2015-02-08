@@ -1,0 +1,15 @@
+language: python
+python:
+    - "2.7"
+install:
+    - "pip install -r requirements.txt"
+script: "py.test"
+deploy:
+    provider: "heroku"
+    api_key:
+        secure: "fCZlkbFk9qgP4mLtIPRM96+A5H/SeKVX0sRAiKJqaek9WudVs36scpiFy/zPwiLxpebPM8arDjEGX9KUnfI7eOfjhOjP0puGxnS/msFCdf+xfP4Zcf7xryPwqTE6u77QQmoqVh1H7O4kTaJs3eFtEdSTdPfIsmxRgfYru/77EHs="
+    app: "film2trello"
+    on:
+        branch: "master"
+        python: "2.7"
+        repo: "honzajavorek/film2trello"
