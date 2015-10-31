@@ -2,10 +2,6 @@
 
 Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [csfd.cz](http://csfd.cz) only.
 
-## Status: PET PROJECT
-
-Under development and maintenance only if I feel so.
-
 ## How does it work?
 
 If you navigate to the main page of this app, it offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on [csfd.cz](http://csfd.cz) page about a film, e.g. [www.csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
