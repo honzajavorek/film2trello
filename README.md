@@ -2,6 +2,7 @@
 
 Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [CSFD.cz](http://csfd.cz) only.
 
+![screenshot](screenshot.png)
 
 ## How does it work?
 
