@@ -1,16 +1,21 @@
 (function() {
-    var url, form, textarea;
+  var form, filmUrl, username;
 
-    form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '{{ url }}?nocache=' + Math.random();
+  form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '{{ url }}?nocache=' + Math.random();
 
-    textarea = document.createElement('textarea');
-    textarea.name = 'url';
-    textarea.value = window.location.href;
+  filmUrl = document.createElement('textarea');
+  filmUrl.name = 'film_url';
+  filmUrl.value = window.location.href;
+  form.appendChild(filmUrl);
 
-    form.appendChild(textarea);
-    document.body.appendChild(form);
+  username = document.createElement('textarea');
+  username.name = 'username';
+  username.value = window.location.href;
+  form.appendChild(username);
 
-    form.submit();
+  document.body.appendChild(form);
+
+  form.submit();
 })()

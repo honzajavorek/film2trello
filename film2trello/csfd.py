@@ -1,38 +1,24 @@
-# -*- coding: utf-8 -*-
-
-
 import re
-import urlparse
-
-import requests
-from lxml import html
+from urllib.parse import urlparse, urlunparse
 
 
-def scrape_film(url):
-    res = requests.get(normalize_url(url))
-    res.raise_for_status()
-    dom = html.fromstring(res.content)
-
-    return {
-        'url': res.url,
-        'title': parse_title(dom),
-        'poster_url': parse_poster_url(dom),
-    }
+class InvalidURLError(ValueError):
+    pass
 
 
 def normalize_url(url):
     match = re.search(r'csfd\.cz/film/(\d+)', url)
     if match:
-        return 'http://www.csfd.cz/film/{}/'.format(match.group(1))
-    raise ValueError
+        return 'https://www.csfd.cz/film/{}/'.format(match.group(1))
+    raise InvalidURLError(url)
 
 
-def parse_title(dom):
-    text = dom.xpath('//title')[0].text_content()
-    return re.sub(ur' \| ČSFD\.cz$', '', text)
+def parse_title(html_tree):
+    text = html_tree.xpath('//title')[0].text_content()
+    return re.sub(r' \| ČSFD\.cz$', '', text)
 
 
-def parse_poster_url(dom):
-    url = dom.xpath('//img[@class="film-poster"]')[0].get('src')
-    scheme, netloc, path, params, query, fragment = urlparse.urlparse(url)
-    return urlparse.urlunparse(('http', netloc, path, '', '', ''))
+def parse_poster_url(html_tree):
+    url = html_tree.xpath('//img[@class="film-poster"]')[0].get('src')
+    scheme, netloc, path, params, query, fragment = urlparse(url)
+    return urlunparse(('https', netloc, path, '', '', ''))

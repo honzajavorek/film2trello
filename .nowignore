@@ -1,0 +1,11 @@
+.now
+.pytest_cache
+.vscode
+.envrc
+.dependabot
+.circleci
+venv
+tests
+conftest.py
+README.md
+LICENSE

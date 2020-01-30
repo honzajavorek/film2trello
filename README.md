@@ -1,24 +1,43 @@
 # film2trello
 
-Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [csfd.cz](http://csfd.cz) only.
+Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [CSFD.cz](http://csfd.cz) only.
+
 
 ## How does it work?
 
-If you navigate to the main page of this app, it offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on [csfd.cz](http://csfd.cz) page about a film, e.g. [www.csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
+When you navigate to the main page of the app, it allows you to submit a CSFD.cz URL of a film. When submitted, it downloads basic information about the film and creates a card in the first column (assumed inbox) of your "To Watch" Trello board.
 
-The app asks you for details (authorization with Trello, selecting Trello board, etc.) on the fly, so you don't need to set up anything in advance.
+Your Trello username is remembered using cookies. The Trello board is hardcoded in the settings of a particular instance of the app.
 
-## Known issues
+### Bookmarklet
 
-- No tests.
-- Crappy interface.
-- No error handling whatsoever.
-- No way to add the card to a column other than the first one.
-- Support only for [csfd.cz](http://csfd.cz). Planned:
-    - [imdb.com](http://www.imdb.com/)
-    - any generic page containing a link to either csfd.cz or imdb.com
+After submitting your first film, the page offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on a [CSFD.cz](http://csfd.cz) page about a film, e.g. [csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
 
-## Instructions
 
-- [Installation](docs/installation.md)
-- [Heroku Deployment](docs/heroku.md)
+## Installation
+
+### Preparation
+
+Set the following environment variables:
+
+- `TRELLO_KEY` - Get it at the [Trello app key page](https://trello.com/app-key).
+- `TRELLO_TOKEN` - Get it at the [Trello app key page](https://trello.com/app-key). Make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
+- `TRELLO_BOARD` - An ID of the Trello board you want to work with. Get it from its URL, e.g. if the URL of the board is `https://trello.com/b/mF7A3n3J/filmy-test`, then `mF7A3n3J` is the ID.
+- `FLASK_SECRET_KEY` - Something random (see [docs](https://flask.palletsprojects.com/en/1.1.x/config/#SECRET_KEY)).
+
+### Development
+
+Create a virtual environment and install dependencies from the `requirements.txt` file. To see how the app will behave when deployed, [install now](https://zeit.co/download) and run `now dev`. Run `pytest` to execute tests. To run the app locally:
+
+```
+$ FLASK_DEBUG=1 FLASK_APP=film2trello flask run --port=3000 --reload
+```
+
+### Deployment
+
+You can deploy manually by [installing now](https://zeit.co/download) and running `now` or `now --prod` it in the directory of the project. To set the environment variables, use `now secrets`.
+
+
+## License
+
+[MIT](LICENSE)
