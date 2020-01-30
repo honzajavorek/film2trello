@@ -5,7 +5,7 @@ Jinja2==2.10.1
 MarkupSafe==0.23
 WTForms==2.0.2
 Werkzeug==0.9.6
-argparse==1.2.1
+argparse==1.4.0
 itsdangerous==0.24
 lxml==3.4.1
 oauthlib==0.7.2
