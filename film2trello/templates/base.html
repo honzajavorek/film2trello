@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  {% block head %}
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex">
+    <title>Films</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+  {% endblock %}
+  </head>
+  <body>
+    <main>
+      {% block main %}{% endblock %}
+    </main>
+    <footer>
+      <a href="https://github.com/honzajavorek/film2trello">source code</a>
+    </footer>
+  </body>
+</html>

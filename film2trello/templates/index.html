@@ -1,22 +1,32 @@
-{% with messages = get_flashed_messages() %}
-  {% if messages %}
-    <ul class="flashes">
-    {% for message in messages %}
-      <li>{{ message }}</li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-{% endwith %}
+{% extends "base.html" %}
 
-<h1>Films</h1>
-<p><a href="{{ trello_board_url }}">This board!</a></p>
+{% block main %}
+<h1>Films 🍿</h1>
+<p>
+  Add a film to <a href="{{ trello_board_url }}">this board</a>.
+</p>
 
 <form action="/" method="post">
-  <label for="username">Your Trello Username</label>
-  <input name="username" id="username" value="{{ username|default('') }}">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul class="flashes">
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
 
-  <label for="film_url">CSFD.cz Film URL</label>
-  <input name="film_url" id="film_url">
-
-  <input type="submit" value="OK">
+  <div class="field">
+    <label for="username">Your Trello Username</label>
+    <input name="username" id="username" value="{{ username|default('') }}">
+  </div>
+  <div class="field">
+    <label for="film_url">CSFD.cz Film URL</label>
+    <input name="film_url" id="film_url">
+  </div>
+  <div class="field">
+    <input type="submit" value="OK">
+  </div>
 </form>
+{% endblock %}
