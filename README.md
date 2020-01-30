@@ -27,11 +27,13 @@ Set the following environment variables:
 
 ### Development
 
-Create a virtual environment and install dependencies from the `requirements.txt` file. To see how the app will behave when deployed, [install now](https://zeit.co/download) and run `now dev`. Run `pytest` to execute tests. To run the app locally:
+Create a virtual environment and install dependencies from the `requirements.txt` file. Run `pytest` to execute tests. To run the app locally:
 
 ```
 $ FLASK_DEBUG=1 FLASK_APP=film2trello flask run --port=3000 --reload
 ```
+
+To see how the app will behave when deployed, [install now](https://zeit.co/download) and run `now dev`. For that, you'll also need a local `.env` file with all the necessary environment variables (see [docs](https://err.sh/now/missing-env-file)).
 
 ### Deployment
 
