@@ -9,3 +9,4 @@ tests
 conftest.py
 README.md
 LICENSE
+.env

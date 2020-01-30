@@ -1,11 +1,11 @@
 {
   "builds": [
-    { "src": "film2trello/__init__.py", "use": "@now/python" },
-    { "src": "film2trello/static/", "use": "@now/static" }
+    { "src": "film2trello/static/*.*", "use": "@now/static" },
+    { "src": "film2trello/__init__.py", "use": "@now/python" }
   ],
   "routes": [
-    { "src": "/", "dest": "/film2trello/__init__.py" },
-    { "src": "/static/(?<path>.*)", "dest": "/film2trello/static/$path" }
+    { "src": "/static/(?<path>.*)", "dest": "/film2trello/static/$path" },
+    { "src": "/", "dest": "/film2trello/__init__.py" }
   ],
   "github": {
     "silent": true
