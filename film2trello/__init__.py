@@ -58,8 +58,14 @@ def post():
         flash(f"Not a valid CSFD.cz film URL: '{film_url}'")
         return redirect(url_for('index'))
     except requests.RequestException as exc:
-        flash(str(exc))
+        flash(sanitize(str(exc)))
         return redirect(url_for('index'))
+
+
+def sanitize(text):
+    return text \
+        .replace(TRELLO_KEY, '<TRELLO_KEY>') \
+        .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')
 
 
 def create_card(username, film):
