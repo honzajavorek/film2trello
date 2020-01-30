@@ -16,7 +16,7 @@ a {
 main {
   background: #fff;
   margin: 1rem 0.5rem;
-  padding: 0.5rem;
+  padding: 1rem;
   border-radius: 0.5rem;
   font-size: 1.5rem;
 }
@@ -32,7 +32,9 @@ h1 {
 }
 
 label {
+  display: block;
   font-size: 1rem;
+  padding: 0.3rem 0;
 }
 
 input[name] {
@@ -68,4 +70,16 @@ input[type="submit"] {
 footer, footer a {
   color: #fff;
   font-size: 1rem;
+}
+
+@media screen and (min-width: 700px) {
+  main, footer {
+    width: 40rem;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  label {
+    text-align: left;
+  }
 }
