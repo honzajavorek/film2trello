@@ -3,7 +3,7 @@
 .vscode
 .envrc
 .dependabot
-.circleci
+.github
 venv
 tests
 conftest.py
