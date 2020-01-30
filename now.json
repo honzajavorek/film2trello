@@ -4,6 +4,7 @@
     { "src": "film2trello/__init__.py", "use": "@now/python" }
   ],
   "routes": [
+    { "src": "/favicon.ico", "dest": "/film2trello/static/favicon.ico" },
     { "src": "/static/(?<path>.*)", "dest": "/film2trello/static/$path" },
     { "src": "/", "dest": "/film2trello/__init__.py" }
   ],
