@@ -20,10 +20,10 @@ After submitting your first film, the page offers you a [bookmarklet](https://en
 
 Set the following environment variables:
 
-- `TRELLO_KEY` - Get it at the [Trello app key page](https://trello.com/app-key).
-- `TRELLO_TOKEN` - Get it at the [Trello app key page](https://trello.com/app-key). Make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
-- `TRELLO_BOARD` - An ID of the Trello board you want to work with. Get it from its URL, e.g. if the URL of the board is `https://trello.com/b/mF7A3n3J/filmy-test`, then `mF7A3n3J` is the ID.
-- `FLASK_SECRET_KEY` - Something random (see [docs](https://flask.palletsprojects.com/en/1.1.x/config/#SECRET_KEY)).
+- **`TRELLO_KEY`** - Get it at the [Trello app key page](https://trello.com/app-key).
+- **`TRELLO_TOKEN`** - Get it at the [Trello app key page](https://trello.com/app-key). Make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
+- **`TRELLO_BOARD`** - An ID of the Trello board you want to work with. Get it from its URL, e.g. if the URL of the board is `https://trello.com/b/mF7A3n3J/filmy-test`, then `mF7A3n3J` is the ID.
+- **`FLASK_SECRET_KEY`** - Something random (see [docs](https://flask.palletsprojects.com/en/1.1.x/config/#SECRET_KEY)).
 
 ### Development
 
