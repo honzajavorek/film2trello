@@ -1,0 +1,9 @@
+.now
+.pytest_cache
+.vscode
+.envrc
+venv
+tests
+conftest.py
+README.md
+LICENSE

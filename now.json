@@ -1,0 +1,4 @@
+{
+  "builds": [{ "src": "film2trello/__init__.py", "use": "@now/python" }],
+	"routes": [{ "src": "/", "dest": "/film2trello/__init__.py" }]
+}
