@@ -1,16 +1,22 @@
 {% extends "base.html" %}
 
 {% block main %}
+<h1>Done 🎉</h1>
 <p>
-    Neco prislo: {{ username }}, {{ film }}
+    <strong>{{ username }}</strong>
+    added <strong><a href="{{ film.url }}">{{ film.title }}</a></strong>
+    as a <a href="{{ card_url }}">new card</a> to your <a href="{{ trello_board_url }}">board</a>.
 </p>
 <p>
-    <a href="/">Zpet</a>
+  <a href="{{ url_for('index') }}">Submit another film</a>
+</p>
+
+<h2>Bookmark 🔖</h2>
+<p>
+  Drag & drop the following button to your browser bookmarks for easier
+  submissions. Next time you are on a CSFD.cz film page, just click on the bookmark.
 </p>
 <p>
-    Přetáhni si tenhle odkaz do lišty v prohlížeči:
-</p>
-<p>
-    <a href="javascript:{{ bookmarklet }}">Film 🍿</a>
+  <a class="bookmarklet" href="javascript:{{ bookmarklet }}">Film</a>
 </p>
 {% endblock %}

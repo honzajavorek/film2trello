@@ -72,6 +72,14 @@ footer, footer a {
   font-size: 1rem;
 }
 
+.bookmarklet {
+  text-decoration: none;
+  border: 0.3rem #000 solid;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
 @media screen and (min-width: 700px) {
   main, footer {
     width: 40rem;

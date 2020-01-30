@@ -53,7 +53,8 @@ def post():
                                          url=url_for('index', _external=True),
                                          username=username)
         return render_template('submission.html', username=username, film=film,
-                               card_url=card_url, bookmarklet=bookmarklet)
+                               card_url=card_url, bookmarklet=bookmarklet,
+                               trello_board_url=TRELLO_BOARD)
     except csfd.InvalidURLError:
         flash(f"Not a valid CSFD.cz film URL: '{film_url}'")
         return redirect(url_for('index'))
