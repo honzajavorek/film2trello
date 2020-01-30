@@ -1,7 +1,7 @@
 <h1 align="center">🍿 film2trello 🍿</h1>
-<p align="center" markdown="1">
-  Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [CSFD.cz](http://csfd.cz) only.
-</p>
+
+Simple app which allows me to use [Trello](http://trello.com/) as my "To Watch" list for films. Currently works with [CSFD.cz](http://csfd.cz) only.
+
 
 ## How does it work?
 
