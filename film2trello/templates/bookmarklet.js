@@ -12,7 +12,7 @@
 
   username = document.createElement('textarea');
   username.name = 'username';
-  username.value = window.location.href;
+  username.value = '{{ username }}';
   form.appendChild(username);
 
   document.body.appendChild(form);
