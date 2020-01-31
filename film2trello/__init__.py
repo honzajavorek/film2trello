@@ -7,12 +7,13 @@ from lxml import html
 import requests
 
 from . import csfd
+from . import trello
 
 
 USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) '
               'Gecko/20100101 Firefox/72.0')
-TRELLO_KEY = os.getenv('TRELLO_KEY')
 TRELLO_TOKEN = os.getenv('TRELLO_TOKEN')
+TRELLO_KEY = os.getenv('TRELLO_KEY')
 TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 
 
@@ -73,55 +74,35 @@ def sanitize_exception(text):
 
 
 def create_card(username, film):
-    cards = request_trello('get', f'/boards/{TRELLO_BOARD}/cards',
-                           params=dict(filter='open'))
+    api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
+    cards = api.get(f'/boards/{TRELLO_BOARD}/cards',
+                    params=dict(filter='open'))
 
-    card_id = None
-    for card in cards:
-        if film['title'] in card['name'] or film['url'] in card['desc']:
-            card_id = card['id']
-            break
-
+    card_id = trello.card_exists(cards, film)
     if not card_id:
-        lists = request_trello('get', f'/boards/{TRELLO_BOARD}/lists')
-
-        card = request_trello('post', '/cards', data={
-            'name': film['title'],
-            'idList': lists[0]['id'],
-            'desc': film['url'],
-        })
+        lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
+        inbox_list_id = trello.get_inbox_id(lists)
+        card_data = trello.prepare_card_data(inbox_list_id, film)
+        card = api.post('/cards', data=card_data)
         card_id = card['id']
 
-    members = request_trello('get', f'/cards/{card_id}/members')
-    if username not in [member['username'] for member in members]:
-        user = request_trello('get', f'/members/{username}')
-        request_trello('post', f'/cards/{card_id}/members', data={
-            'value': user['id']
-        })
+    members = api.get(f'/cards/{card_id}/members')
+    if trello.not_in_members(username, members):
+        user = api.get(f'/members/{username}')
+        api.post(f'/cards/{card_id}/members', data=dict(value=user['id']))
 
-    attachments = request_trello('get', f'/cards/{card_id}/attachments')
+    attachments = api.get(f'/cards/{card_id}/attachments')
     if not len(attachments):
-        request_trello('post', f'/cards/{card_id}/attachments', data={
-            'url': film['poster_url']
-        })
+        api.post(f'/cards/{card_id}/attachments',
+                 data=dict(url=film['poster_url']))
 
     return f'https://trello.com/c/{card_id}'
 
 
-def request_trello(method, path, params=None, data=None):
-    params = params or {}
-    if not params.get('token'):
-        params['token'] = TRELLO_TOKEN
-    if not params.get('key'):
-        params['key'] = TRELLO_KEY
-
-    url = 'https://trello.com/1/' + path.lstrip('/')
-
-    res = requests.request(method, url, params=params, data=data)
-    res.raise_for_status()
-    return res.json()
-
-
 def render_bookmarklet(*args, **kwargs):
-    js_code = render_template(*args, **kwargs)
-    return re.sub(r'\s+', ' ', js_code)  # one line, compressed
+    return compress_javascript(render_template(*args, **kwargs))
+
+
+def compress_javascript(code):
+    """Compress JS to just one line"""
+    return re.sub(r'\s+', ' ', code)
