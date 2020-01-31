@@ -33,8 +33,7 @@ def get():
 
 
 def post():
-    username = request.form.get('username')
-    username = None if username in ('None', '') else username
+    username = parse_username(request.form.get('username'))
     film_url = request.form.get('film_url', '')
     try:
         film_url = csfd.normalize_url(film_url)
@@ -59,11 +58,15 @@ def post():
         flash(f"Not a valid CSFD.cz film URL: '{film_url}'")
         return redirect(url_for('index'))
     except requests.RequestException as exc:
-        flash(sanitize(str(exc)))
+        flash(sanitize_exception(str(exc)))
         return redirect(url_for('index'))
 
 
-def sanitize(text):
+def parse_username(username):
+    return None if username in ('None', '') else username
+
+
+def sanitize_exception(text):
     return text \
         .replace(TRELLO_KEY, '<TRELLO_KEY>') \
         .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')

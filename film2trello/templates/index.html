@@ -19,7 +19,7 @@
 
   <div class="field">
     <label for="username">Your Trello Username</label>
-    <input name="username" id="username" value="{{ username|default('') }}">
+    <input name="username" id="username" value="{% if username %}{{ username }}{% endif %}">
   </div>
   <div class="field">
     <label for="film_url">CSFD.cz Film URL</label>
