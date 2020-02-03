@@ -12,6 +12,18 @@ def csfd_html():
     return html.fromstring(path.read_text())
 
 
+@pytest.fixture()
+def csfd_directors_cut_html():
+    path = Path(__file__).parent / 'csfd_directors_cut.html'
+    return html.fromstring(path.read_text())
+
+
+@pytest.fixture()
+def csfd_tvshow_html():
+    path = Path(__file__).parent / 'csfd_tvshow.html'
+    return html.fromstring(path.read_text())
+
+
 @pytest.mark.parametrize('url', (
     'http://csfd.cz/film/8283-posledni-skaut/',
     'http://www.csfd.cz/film/8283-posledni-skaut/',
@@ -42,3 +54,15 @@ def test_parse_poster_url(csfd_html):
     url = ('https://img.csfd.cz/files/images/film/posters/159/527/'
            '159527985_335bf7.jpg')
     assert csfd.parse_poster_url(csfd_html) == url
+
+
+def test_parse_duration(csfd_html):
+    list(csfd.parse_duration(csfd_html)) == [105]
+
+
+def test_parse_duration_multiple(csfd_directors_cut_html):
+    list(csfd.parse_duration(csfd_directors_cut_html)) == [172, 208, 228]
+
+
+def test_parse_duration_tvshow(csfd_tvshow_html):
+    list(csfd.parse_duration(csfd_tvshow_html)) == [59, 65]

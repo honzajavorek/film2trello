@@ -22,3 +22,13 @@ def parse_poster_url(html_tree):
     url = html_tree.xpath('//img[@class="film-poster"]')[0].get('src')
     scheme, netloc, path, params, query, fragment = urlparse(url)
     return urlunparse(('https', netloc, path, '', '', ''))
+
+
+def parse_duration(html_tree):
+    text = html_tree.xpath('//p[@class="origin"]')[0].text_content().lower()
+    match = re.search(r'minutáž:\s+([\d\–\-]+)\s+min', text)
+    if match:
+        yield from map(int, re.split(r'\D+', match.group(1)))
+    else:
+        for match in re.finditer(r'\b(\d+)\s+min\b', text):
+            yield match.group(1)
