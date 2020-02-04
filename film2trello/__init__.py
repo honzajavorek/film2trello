@@ -59,6 +59,9 @@ def post():
     except csfd.InvalidURLError:
         flash(f"Not a valid CSFD.cz film URL: '{film_url}'")
         return redirect(url_for('index'))
+    except trello.InvalidUsernameError:
+        flash(f"User '{username}' is not allowed to the board")
+        return redirect(url_for('index'))
     except requests.RequestException as exc:
         flash(sanitize_exception(str(exc)))
         return redirect(url_for('index'))
@@ -66,6 +69,11 @@ def post():
 
 def create_card(username, film):
     api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
+
+    members = api.get(f'/boards/{TRELLO_BOARD}/members')
+    if trello.not_in_members(username, members):
+        raise trello.InvalidUsernameError()
+
     cards = api.get(f'/boards/{TRELLO_BOARD}/cards',
                     params=dict(filter='open'))
 

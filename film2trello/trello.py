@@ -16,6 +16,10 @@ COLORS = {
 }
 
 
+class InvalidUsernameError(ValueError):
+    pass
+
+
 def create_session(token, key):
     def prefix_request(f, method, url, *args, **kwargs):
         url = 'https://trello.com/1/' + url.lstrip('/')
