@@ -106,17 +106,8 @@ def create_card(username, film):
                  data=dict(url=film['url']))
 
         with requests.get(film['poster_url'], stream=True) as response:
-            if is_large_response(response):
-                image = Image.open(response.raw)
-                image.thumbnail(THUMBNAIL_SIZE)
-                image_file = BytesIO()
-                image.save(image_file, 'JPEG')
-                image_file.seek(0)
-                api.post(f'/cards/{card_id}/attachments',
-                         files=dict(file=('poster.jpg', image_file, 'image/jpeg')))
-            else:
-                api.post(f'/cards/{card_id}/attachments',
-                         data=dict(url=film['poster_url']))
+            api.post(f'/cards/{card_id}/attachments',
+                     files=dict(file=create_thumbnail(response)))
 
     return f'https://trello.com/c/{card_id}'
 
@@ -140,6 +131,10 @@ def sanitize_exception(text):
         .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')
 
 
-def is_large_response(response):
-    content_length = int(response.headers.get('content-length', 0))
-    return content_length / 1000000 >= LARGE_RESPONSE_MB
+def create_thumbnail(response):
+    image = Image.open(response.raw)
+    image.thumbnail(THUMBNAIL_SIZE)
+    image_file = BytesIO()
+    image.save(image_file, 'JPEG')
+    image_file.seek(0)
+    return ('poster.jpg', image_file, 'image/jpeg')
