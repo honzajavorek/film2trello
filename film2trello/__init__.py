@@ -1,10 +1,12 @@
 import os
 import re
+from io import BytesIO
 
 from flask import (Flask, render_template, request, redirect, url_for, session,
                    flash)
 from lxml import html
 import requests
+from PIL import Image
 
 from . import csfd
 from . import trello
@@ -15,6 +17,9 @@ USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) '
 TRELLO_TOKEN = os.getenv('TRELLO_TOKEN')
 TRELLO_KEY = os.getenv('TRELLO_KEY')
 TRELLO_BOARD = os.getenv('TRELLO_BOARD')
+
+LARGE_RESPONSE_MB = 10
+THUMBNAIL_SIZE = (500, 500)
 
 
 app = Flask(__name__)
@@ -99,8 +104,19 @@ def create_card(username, film):
     if not len(attachments):
         api.post(f'/cards/{card_id}/attachments',
                  data=dict(url=film['url']))
-        api.post(f'/cards/{card_id}/attachments',
-                 data=dict(url=film['poster_url']))
+
+        with requests.get(film['poster_url'], stream=True) as response:
+            if is_large_response(response):
+                image = Image.open(response.raw)
+                image.thumbnail(THUMBNAIL_SIZE)
+                image_file = BytesIO()
+                image.save(image_file, 'JPEG')
+                image_file.seek(0)
+                api.post(f'/cards/{card_id}/attachments',
+                         files=dict(file=('poster.jpg', image_file, 'image/jpeg')))
+            else:
+                api.post(f'/cards/{card_id}/attachments',
+                         data=dict(url=film['poster_url']))
 
     return f'https://trello.com/c/{card_id}'
 
@@ -122,3 +138,8 @@ def sanitize_exception(text):
     return text \
         .replace(TRELLO_KEY, '<TRELLO_KEY>') \
         .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')
+
+
+def is_large_response(response):
+    content_length = int(response.headers.get('content-length', 0))
+    return content_length / 1000000 >= LARGE_RESPONSE_MB
