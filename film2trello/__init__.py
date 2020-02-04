@@ -44,7 +44,8 @@ def post():
         html_tree = html.fromstring(res.content)
 
         film = dict(url=res.url, title=csfd.parse_title(html_tree),
-                    poster_url=csfd.parse_poster_url(html_tree))
+                    poster_url=csfd.parse_poster_url(html_tree),
+                    durations=csfd.parse_durations(html_tree))
         card_url = create_card(username, film)
 
         session['username'] = username
@@ -61,16 +62,6 @@ def post():
     except requests.RequestException as exc:
         flash(sanitize_exception(str(exc)))
         return redirect(url_for('index'))
-
-
-def parse_username(username):
-    return None if username in ('None', '') else username
-
-
-def sanitize_exception(text):
-    return text \
-        .replace(TRELLO_KEY, '<TRELLO_KEY>') \
-        .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')
 
 
 def create_card(username, film):
@@ -91,6 +82,11 @@ def create_card(username, film):
         user = api.get(f'/members/{username}')
         api.post(f'/cards/{card_id}/members', data=dict(value=user['id']))
 
+    labels = api.get(f'/cards/{card_id}/labels')
+    if not labels:
+        for label in trello.prepare_labels(film['durations']):
+            api.post(f'/cards/{card_id}/labels', params=label)
+
     attachments = api.get(f'/cards/{card_id}/attachments')
     if not len(attachments):
         api.post(f'/cards/{card_id}/attachments',
@@ -106,3 +102,13 @@ def render_bookmarklet(*args, **kwargs):
 def compress_javascript(code):
     """Compress JS to just one line"""
     return re.sub(r'\s+', ' ', code)
+
+
+def parse_username(username):
+    return None if username in ('None', '') else username
+
+
+def sanitize_exception(text):
+    return text \
+        .replace(TRELLO_KEY, '<TRELLO_KEY>') \
+        .replace(TRELLO_TOKEN, '<TRELLO_TOKEN>')

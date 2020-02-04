@@ -24,11 +24,11 @@ def parse_poster_url(html_tree):
     return urlunparse(('https', netloc, path, '', '', ''))
 
 
-def parse_duration(html_tree):
+def parse_durations(html_tree):
     text = html_tree.xpath('//p[@class="origin"]')[0].text_content().lower()
     match = re.search(r'minutáž:\s+([\d\–\-]+)\s+min', text)
     if match:
         yield from map(int, re.split(r'\D+', match.group(1)))
     else:
         for match in re.finditer(r'\b(\d+)\s+min\b', text):
-            yield match.group(1)
+            yield int(match.group(1))

@@ -57,12 +57,12 @@ def test_parse_poster_url(csfd_html):
 
 
 def test_parse_duration(csfd_html):
-    list(csfd.parse_duration(csfd_html)) == [105]
+    assert list(csfd.parse_durations(csfd_html)) == [105]
 
 
 def test_parse_duration_multiple(csfd_directors_cut_html):
-    list(csfd.parse_duration(csfd_directors_cut_html)) == [172, 208, 228]
+    assert list(csfd.parse_durations(csfd_directors_cut_html)) == [172, 208, 228]
 
 
 def test_parse_duration_tvshow(csfd_tvshow_html):
-    list(csfd.parse_duration(csfd_tvshow_html)) == [59, 65]
+    assert list(csfd.parse_durations(csfd_tvshow_html)) == [59, 65]

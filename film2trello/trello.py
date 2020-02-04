@@ -1,6 +1,19 @@
 from functools import partial
+import math
 
 import requests
+
+
+COLORS = {
+    '20m': 'blue',
+    '30m': 'sky',
+    '45m': 'green',
+    '1h': 'lime',
+    '1.5h': 'yellow',
+    '2h': 'orange',
+    '2.5h': 'red',
+    '3+h': 'purple',
+}
 
 
 def create_session(token, key):
@@ -36,3 +49,29 @@ def prepare_card_data(list_id, film):
 
 def not_in_members(username, members):
     return username not in [member['username'] for member in members]
+
+
+def prepare_labels(durations):
+    for duration in durations:
+        name = get_duration_bracket(duration)
+        yield dict(name=name, color=COLORS[name])
+
+
+def get_duration_bracket(duration):
+    duration_cca = math.floor(duration / 10.0) * 10
+    if duration <= 20:
+        return '20m'
+    elif duration <= 30:
+        return '30m'
+    elif duration <= 45:
+        return '45m'
+    if duration <= 60:
+        return '1h'
+    if duration_cca <= 90:
+        return '1.5h'
+    if duration_cca <= 120:
+        return '2h'
+    if duration_cca <= 150:
+        return '2.5h'
+    else:
+        return '3+h'

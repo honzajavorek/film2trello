@@ -100,3 +100,36 @@ def test_not_in_members_when_it_isnt():
 
 def test_not_in_members_when_members_empty():
     assert trello.not_in_members('honzajavorek', []) == True
+
+
+def test_prepare_labels():
+    assert list(trello.prepare_labels([20, 55, 130])) == [
+        dict(name='20m', color='blue'),
+        dict(name='1h', color='lime'),
+        dict(name='2.5h', color='red'),
+    ]
+
+
+@pytest.mark.parametrize('duration,expected', [
+    (15, '20m'),
+    (20, '20m'),
+    (25, '30m'),
+    (30, '30m'),
+    (35, '45m'),
+    (40, '45m'),
+    (45, '45m'),
+    (50, '1h'),
+    (55, '1h'),
+    (60, '1h'),
+    (65, '1.5h'),
+    (80, '1.5h'),
+    (90, '1.5h'),
+    (100, '2h'),
+    (120, '2h'),
+    (130, '2.5h'),
+    (150, '2.5h'),
+    (154, '2.5h'),
+    (200, '3+h'),
+])
+def test_get_duration_bracket(duration, expected):
+    assert trello.get_duration_bracket(duration) == expected
