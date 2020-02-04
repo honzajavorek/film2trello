@@ -98,6 +98,8 @@ def create_card(username, film):
     attachments = api.get(f'/cards/{card_id}/attachments')
     if not len(attachments):
         api.post(f'/cards/{card_id}/attachments',
+                 data=dict(url=film['url']))
+        api.post(f'/cards/{card_id}/attachments',
                  data=dict(url=film['poster_url']))
 
     return f'https://trello.com/c/{card_id}'
