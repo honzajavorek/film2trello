@@ -87,8 +87,8 @@ def test_prepare_card_data():
 
 def test_prepare_updated_card_data():
     assert trello.prepare_updated_card_data() == dict(
-        closed=False,
         pos='top',
+        closed='false',
     )
 
 
