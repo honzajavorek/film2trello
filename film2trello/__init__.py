@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from io import BytesIO
 
 from flask import (Flask, render_template, request, redirect, url_for, session,
@@ -69,6 +70,7 @@ def post():
         return redirect(url_for('index'))
     except requests.RequestException as exc:
         flash(sanitize_exception(str(exc)))
+        print(exc, file=sys.stderr)
         return redirect(url_for('index'))
 
 
