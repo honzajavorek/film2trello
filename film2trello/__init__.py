@@ -83,7 +83,9 @@ def create_card(username, film):
                     params=dict(filter='open'))
 
     card_id = trello.card_exists(cards, film)
-    if not card_id:
+    if card_id:
+        api.put(f'/cards/{card_id}/', data=trello.prepare_udpated_card_data())
+    else:
         lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
         inbox_list_id = trello.get_inbox_id(lists)
         card_data = trello.prepare_card_data(inbox_list_id, film)

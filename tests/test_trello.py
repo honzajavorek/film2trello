@@ -85,6 +85,13 @@ def test_prepare_card_data():
     )
 
 
+def test_prepare_updated_card_data():
+    assert trello.prepare_updated_card_data() == dict(
+        closed=False,
+        pos='top',
+    )
+
+
 def test_not_in_members_when_it_is():
     assert trello.not_in_members('honzajavorek', [
         dict(username='vladimir'),

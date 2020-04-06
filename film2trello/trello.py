@@ -52,6 +52,13 @@ def prepare_card_data(list_id, film):
     )
 
 
+def prepare_updated_card_data():
+    return dict(
+        pos='top',
+        closed=False,
+    )
+
+
 def not_in_members(username, members):
     return username not in [member['username'] for member in members]
 
