@@ -48,6 +48,7 @@ def prepare_card_data(list_id, film):
         name=film['title'],
         idList=list_id,
         desc=film['url'],
+        pos='top',
     )
 
 
