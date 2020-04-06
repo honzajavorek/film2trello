@@ -81,6 +81,7 @@ def test_prepare_card_data():
         name='Poslední skaut / The Last Boy Scout (1991)',
         idList='1',
         desc='https://www.csfd.cz/film/8283-posledni-skaut/',
+        pos='top',
     )
 
 
