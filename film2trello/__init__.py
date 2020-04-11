@@ -2,6 +2,8 @@ import os
 import re
 import sys
 from io import BytesIO
+import json
+from pathlib import Path
 
 from flask import (Flask, render_template, request, redirect, url_for, session,
                    flash)
@@ -21,6 +23,20 @@ TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 
 LARGE_RESPONSE_MB = 10
 THUMBNAIL_SIZE = (500, 500)
+
+AEROVOD_DATA_PATH = Path(__file__).parent / 'aerovod.json'
+try:
+    AEROVOD_DATA = [
+        (
+            dict(url=item['url'], csfd_url=csfd.normalize_url(item['csfd_url']))
+            if item['csfd_url']
+            else dict(url=item['url'], csfd_url=None)
+        )
+        for item in
+        json.loads(AEROVOD_DATA_PATH.read_text())
+    ]
+except IOError:
+    AEROVOD_DATA = []
 
 
 app = Flask(__name__)
@@ -52,7 +68,8 @@ def post():
         film = dict(url=res.url, title=csfd.parse_title(html_tree),
                     poster_url=csfd.parse_poster_url(html_tree),
                     durations=csfd.parse_durations(html_tree))
-        card_url = create_card(username, film)
+        aerovod_film = get_aerovod_film(film_url)
+        card_url = create_card(username, film, aerovod_film=aerovod_film)
 
         session['username'] = username
 
@@ -74,7 +91,14 @@ def post():
         return redirect(url_for('index'))
 
 
-def create_card(username, film):
+def get_aerovod_film(film_url):
+    for aerovod_film in AEROVOD_DATA:
+        if aerovod_film['csfd_url'] == film_url:
+            return aerovod_film
+    return None
+
+
+def create_card(username, film, aerovod_film=None):
     api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
 
     members = api.get(f'/boards/{TRELLO_BOARD}/members')
@@ -94,21 +118,28 @@ def create_card(username, film):
         card = api.post('/cards', data=card_data)
         card_id = card['id']
 
-    members = api.get(f'/cards/{card_id}/members')
-    if trello.not_in_members(username, members):
+    existing_members = api.get(f'/cards/{card_id}/members')
+    if trello.not_in_members(username, existing_members):
         user = api.get(f'/members/{username}')
         api.post(f'/cards/{card_id}/members', data=dict(value=user['id']))
 
-    labels = api.get(f'/cards/{card_id}/labels')
-    if not labels:
-        for label in trello.prepare_labels(film['durations']):
-            api.post(f'/cards/{card_id}/labels', params=label)
+    existing_labels = api.get(f'/cards/{card_id}/labels')
+    labels = list(trello.prepare_duration_labels(film['durations']))
+    if aerovod_film:
+        labels.append(trello.AEROVOD_LABEL)
+    labels = trello.get_missing_labels(existing_labels, labels)
+    for label in labels:
+        api.post(f'/cards/{card_id}/labels', params=label)
 
-    attachments = api.get(f'/cards/{card_id}/attachments')
-    if not len(attachments):
-        api.post(f'/cards/{card_id}/attachments',
-                 data=dict(url=film['url']))
+    existing_attachments = api.get(f'/cards/{card_id}/attachments')
+    urls = [film['url']]
+    if aerovod_film:
+        urls.append(aerovod_film['url'])
+    urls = trello.get_missing_attached_urls(existing_attachments, urls)
+    for url in urls:
+        api.post(f'/cards/{card_id}/attachments', data=dict(url=url))
 
+    if not trello.has_poster(existing_attachments):
         with requests.get(film['poster_url'], stream=True) as response:
             api.post(f'/cards/{card_id}/attachments',
                      files=dict(file=create_thumbnail(response)))

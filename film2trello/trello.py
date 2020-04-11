@@ -3,6 +3,8 @@ import math
 
 import requests
 
+from . import csfd
+
 
 COLORS = {
     '20m': 'blue',
@@ -14,6 +16,8 @@ COLORS = {
     '2.5h': 'red',
     '3+h': 'purple',
 }
+
+AEROVOD_LABEL = dict(name='Aerovod', color='black')
 
 
 class InvalidUsernameError(ValueError):
@@ -63,7 +67,7 @@ def not_in_members(username, members):
     return username not in [member['username'] for member in members]
 
 
-def prepare_labels(durations):
+def prepare_duration_labels(durations):
     for duration in durations:
         name = get_duration_bracket(duration)
         yield dict(name=name, color=COLORS[name])
@@ -87,3 +91,30 @@ def get_duration_bracket(duration):
         return '2.5h'
     else:
         return '3+h'
+
+
+def get_missing_labels(existing_labels, labels):
+    names = {label['name'] for label in existing_labels}
+    return [label for label in labels if label['name'] not in names]
+
+
+def get_missing_attached_urls(existing_attachments, urls):
+    def normalize_url(url):
+        try:
+            return csfd.normalize_url(url)
+        except csfd.InvalidURLError:
+            return url
+
+    existing_urls = {
+        normalize_url(attach['name'])
+        for attach in existing_attachments
+        if attach['name'] == attach['url']
+    }
+    return [url for url in urls if normalize_url(url) not in existing_urls]
+
+
+def has_poster(attachments):
+    for attachment in attachments:
+        if len(attachment['previews']):
+            return True
+    return False

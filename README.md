@@ -41,6 +41,15 @@ To see how the app will behave when deployed, [install now](https://zeit.co/down
 You can deploy manually by [installing now](https://zeit.co/download) and running `now` or `now --prod` it in the directory of the project. To set the environment variables, use `now secrets`.
 
 
+## Aerovod support
+
+The app can create cards with information about whether the film is available at [Aerovod](https://aerovod.cz). For this to work correctly, an updated file `./film2trello/aerovod.json` needs to be present. It can be created using the following script:
+
+```
+$ python -m aerovod > ./film2trello/aerovod.json
+```
+
+
 ## License
 
 [MIT](LICENSE)

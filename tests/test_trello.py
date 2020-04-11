@@ -110,12 +110,80 @@ def test_not_in_members_when_members_empty():
     assert trello.not_in_members('honzajavorek', []) == True
 
 
-def test_prepare_labels():
-    assert list(trello.prepare_labels([20, 55, 130])) == [
+def test_prepare_duration_labels():
+    assert list(trello.prepare_duration_labels([20, 55, 130])) == [
         dict(name='20m', color='blue'),
         dict(name='1h', color='lime'),
         dict(name='2.5h', color='red'),
     ]
+
+
+def test_get_missing_labels():
+    existing_labels = [
+        {'id': '...', 'idBoard': '...', 'name': '2.5h', 'color': 'red'},
+        {'id': '...', 'idBoard': '...', 'name': '3+h', 'color': 'purple'},
+    ]
+    labels = [
+        dict(name='Aerovod', color='black'),
+        dict(name='3+h', color='purple'),
+        dict(name='2.5h', color='red'),
+    ]
+
+    assert trello.get_missing_labels(existing_labels, labels) == [
+        dict(name='Aerovod', color='black'),
+    ]
+
+
+def test_get_missing_attached_urls():
+    existing_attachments = [
+        {
+            'id': '...',
+            'date': '2020-04-06T11:20:15.762Z',
+            'name': 'https://www.csfd.cz/film/642698-slunovrat/prehled/',
+            'url': 'https://www.csfd.cz/film/642698-slunovrat/prehled/',
+        },
+        {
+            'id': '...',
+            'date': '2020-04-06T11:20:31.176Z',
+            'name': 'poster.jpg',
+            'url': '...',
+        },
+    ]
+    urls = [
+        'https://www.csfd.cz/film/642698/',
+        'https://aerovod.cz/katalog/slunovrat',
+    ]
+
+    assert trello.get_missing_attached_urls(existing_attachments, urls) == [
+        'https://aerovod.cz/katalog/slunovrat',
+    ]
+
+
+def test_has_poster():
+    existing_attachments = [
+        {
+            'id': '...',
+            'bytes': None,
+            'name': 'https://www.csfd.cz/film/642698-slunovrat/prehled/',
+            'previews': [],
+            'url': 'https://www.csfd.cz/film/642698-slunovrat/prehled/',
+        },
+        {
+            'id': '...',
+            'bytes': 34286,
+            'name': 'poster.jpg',
+            'previews': [{}, {}, {}],
+            'url': '...',
+        },
+    ]
+    urls = [
+        'https://www.csfd.cz/film/642698/',
+        'https://aerovod.cz/katalog/slunovrat',
+    ]
+
+    assert trello.has_poster(existing_attachments) == True
+    assert trello.has_poster(existing_attachments[:1]) == False
+    assert trello.has_poster(existing_attachments[1:]) == True
 
 
 @pytest.mark.parametrize('duration,expected', [
