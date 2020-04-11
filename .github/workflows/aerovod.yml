@@ -1,0 +1,17 @@
+name: aerovod
+on:
+  push:
+  schedule:
+    - cron: "0 9 * * *"
+jobs:
+  aerovod:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v1.1.1
+    - run: pip install -r requirements.txt
+    - run: python -m aerovod > aerovod.json
+    - uses: actions/upload-artifact@v1
+      with:
+        name: aerovod
+        path: aerovod.json
