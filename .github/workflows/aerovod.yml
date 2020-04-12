@@ -10,8 +10,15 @@ jobs:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v1.1.1
     - run: pip install -r requirements.txt
-    - run: python -m aerovod > aerovod.json
-    - uses: actions/upload-artifact@v1
+    - run: python -m aerovod > ./aerovod/films.json
+    - uses: EndBug/add-and-commit@v4.0.1
       with:
-        name: aerovod
-        path: aerovod.json
+        add: ./aerovod/films.json
+        author_name: "GitHub Actions"
+        message: "update the list of films available at Aerovod"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #- uses: actions/upload-artifact@v1
+    #  with:
+    #    name: aerovod
+    #    path: aerovod.json
