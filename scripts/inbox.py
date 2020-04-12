@@ -14,9 +14,13 @@ cards = api.get(f'/lists/{inbox_list_id}/cards')
 
 for card in cards:
     print(card['name'], file=sys.stderr, flush=True)
-    film_url = csfd.normalize_url(card['desc'])
-    print(film_url, file=sys.stderr, flush=True)
-    film = get_film(film_url)
-    aerovod_film = get_aerovod_film(film_url)
-    update_labels(api, card['id'], film, aerovod_film=aerovod_film)
-    update_attachments(api, card['id'], film, aerovod_film=aerovod_film)
+    try:
+        film_url = csfd.normalize_url(card['desc'])
+        print(film_url, file=sys.stderr, flush=True)
+    except csfd.InvalidURLError as e:
+        print("Card description doesn't contain CSFD.cz URL", file=sys.stderr, flush=True)
+    else:
+        film = get_film(film_url)
+        aerovod_film = get_aerovod_film(film_url)
+        update_labels(api, card['id'], film, aerovod_film=aerovod_film)
+        update_attachments(api, card['id'], film, aerovod_film=aerovod_film)

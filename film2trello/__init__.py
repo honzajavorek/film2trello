@@ -141,7 +141,11 @@ def update_labels(api, card_id, film, aerovod_film=None):
         labels.append(trello.AEROVOD_LABEL)
     labels = trello.get_missing_labels(existing_labels, labels)
     for label in labels:
-        api.post(f'/cards/{card_id}/labels', params=label)
+        try:
+            api.post(f'/cards/{card_id}/labels', params=label)
+        except requests.RequestException as e:
+            if 'label is already on the card' not in e.response.text:
+                raise e
 
 
 def update_attachments(api, card_id, film, aerovod_film=None):
