@@ -43,10 +43,10 @@ You can deploy manually by [installing now](https://zeit.co/download) and runnin
 
 ## Aerovod support
 
-The app can create cards with information about whether the film is available at [Aerovod](https://aerovod.cz). For this to work correctly, an updated file `./aerovod/films.json` needs to be present. It can be created using the following script:
+The app can create cards with information about whether the film is available at [Aerovod](https://aerovod.cz). For this to work correctly, an updated file `./film2trello/aerovod.json` needs to be present. It can be created using the following script:
 
 ```
-$ python -m aerovod > ./aerovod/films.json
+$ python ./scripts/aerovod.py > ./film2trello/aerovod.json
 ```
 
 This repository does it automatically every three days and commits the resulting file back. It's perhaps not the purest solution, but it's the simplest way to get this thing working together with automatic GitHub deployments by ZEIT Now.

@@ -24,7 +24,7 @@ TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 LARGE_RESPONSE_MB = 10
 THUMBNAIL_SIZE = (500, 500)
 
-AEROVOD_DATA_PATH = Path(__file__).parent.parent / 'aerovod' / 'films.json'
+AEROVOD_DATA_PATH = Path(__file__).parent / 'aerovod.json'
 try:
     AEROVOD_DATA = [
         (
