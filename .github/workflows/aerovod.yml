@@ -2,7 +2,7 @@ name: aerovod
 on:
   push:
   schedule:
-    - cron: "0 9 * * *"
+    - cron: "0 */72 * * *"  # every three days
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -18,7 +18,3 @@ jobs:
         message: "update the list of films available at Aerovod"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    #- uses: actions/upload-artifact@v1
-    #  with:
-    #    name: aerovod
-    #    path: aerovod.json

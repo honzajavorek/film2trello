@@ -1,6 +1,5 @@
 import sys
 import json
-import re
 
 from lxml import html
 import requests
@@ -20,7 +19,7 @@ def generate_urls():
 
 film_urls = set()
 for url in generate_urls():
-    print(url, file=sys.stderr)
+    print(url, file=sys.stderr, flush=True)
     response = requests.get(url, headers={'User-Agent': USER_AGENT})
     response.raise_for_status()
     html_tree = html.fromstring(response.content)
@@ -31,11 +30,12 @@ for url in generate_urls():
         film_urls.add(link.get('href'))
     if count == len(film_urls):
         break
+film_urls = sorted(film_urls)
 
 
 films = []
 for url in film_urls:
-    print(url, file=sys.stderr)
+    print(url, file=sys.stderr, flush=True)
     response = requests.get(url, headers={'User-Agent': USER_AGENT})
     response.raise_for_status()
     html_tree = html.fromstring(response.content)
@@ -47,8 +47,8 @@ for url in film_urls:
         csfd_url = None
 
     film = dict(url=url, csfd_url=csfd_url)
-    print(film, file=sys.stderr)
+    print(film, file=sys.stderr, flush=True)
     films.append(film)
 
 
-print(json.dumps(films))
+print(json.dumps(films, ensure_ascii=False, indent=2))

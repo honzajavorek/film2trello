@@ -24,7 +24,7 @@ TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 LARGE_RESPONSE_MB = 10
 THUMBNAIL_SIZE = (500, 500)
 
-AEROVOD_DATA_PATH = Path(__file__).parent / 'aerovod.json'
+AEROVOD_DATA_PATH = Path(__file__).parent.parent / 'aerovod' / 'films.json'
 try:
     AEROVOD_DATA = [
         (
@@ -32,10 +32,10 @@ try:
             if item['csfd_url']
             else dict(url=item['url'], csfd_url=None)
         )
-        for item in
-        json.loads(AEROVOD_DATA_PATH.read_text())
+        for item in json.loads(AEROVOD_DATA_PATH.read_text())
     ]
 except IOError:
+    print('Could not load Aerovod data', file=sys.stderr)
     AEROVOD_DATA = []
 
 
