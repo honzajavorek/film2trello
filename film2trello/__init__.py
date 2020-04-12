@@ -60,14 +60,7 @@ def post():
     film_url = request.form.get('film_url', '')
     try:
         film_url = csfd.normalize_url(film_url)
-
-        res = requests.get(film_url, headers={'User-Agent': USER_AGENT})
-        res.raise_for_status()
-        html_tree = html.fromstring(res.content)
-
-        film = dict(url=res.url, title=csfd.parse_title(html_tree),
-                    poster_url=csfd.parse_poster_url(html_tree),
-                    durations=csfd.parse_durations(html_tree))
+        film = get_film(film_url)
         aerovod_film = get_aerovod_film(film_url)
         card_url = create_card(username, film, aerovod_film=aerovod_film)
 
@@ -89,6 +82,16 @@ def post():
         flash(sanitize_exception(str(exc)))
         print(f'{exc} - {exc.response.text}', file=sys.stderr)
         return redirect(url_for('index'))
+
+
+def get_film(film_url):
+    res = requests.get(film_url, headers={'User-Agent': USER_AGENT})
+    res.raise_for_status()
+    html_tree = html.fromstring(res.content)
+
+    return dict(url=res.url, title=csfd.parse_title(html_tree),
+                poster_url=csfd.parse_poster_url(html_tree),
+                durations=csfd.parse_durations(html_tree))
 
 
 def get_aerovod_film(film_url):
@@ -118,11 +121,20 @@ def create_card(username, film, aerovod_film=None):
         card = api.post('/cards', data=card_data)
         card_id = card['id']
 
+    update_members(api, card_id, username)
+    update_labels(api, card_id, film, aerovod_film=aerovod_film)
+    update_attachments(api, card_id, film, aerovod_film=aerovod_film)
+    return f'https://trello.com/c/{card_id}'
+
+
+def update_members(api, card_id, username):
     existing_members = api.get(f'/cards/{card_id}/members')
     if trello.not_in_members(username, existing_members):
         user = api.get(f'/members/{username}')
         api.post(f'/cards/{card_id}/members', data=dict(value=user['id']))
 
+
+def update_labels(api, card_id, film, aerovod_film=None):
     existing_labels = api.get(f'/cards/{card_id}/labels')
     labels = list(trello.prepare_duration_labels(film['durations']))
     if aerovod_film:
@@ -131,6 +143,8 @@ def create_card(username, film, aerovod_film=None):
     for label in labels:
         api.post(f'/cards/{card_id}/labels', params=label)
 
+
+def update_attachments(api, card_id, film, aerovod_film=None):
     existing_attachments = api.get(f'/cards/{card_id}/attachments')
     urls = [film['url']]
     if aerovod_film:
@@ -143,8 +157,6 @@ def create_card(username, film, aerovod_film=None):
         with requests.get(film['poster_url'], stream=True) as response:
             api.post(f'/cards/{card_id}/attachments',
                      files=dict(file=create_thumbnail(response)))
-
-    return f'https://trello.com/c/{card_id}'
 
 
 def render_bookmarklet(*args, **kwargs):

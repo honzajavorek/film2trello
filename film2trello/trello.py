@@ -50,8 +50,8 @@ def get_inbox_id(lists):
 def prepare_card_data(list_id, film):
     return dict(
         name=film['title'],
-        idList=list_id,
         desc=film['url'],
+        idList=list_id,
         pos='top',
     )
 
@@ -59,7 +59,6 @@ def prepare_card_data(list_id, film):
 def prepare_updated_card_data():
     return dict(
         pos='top',
-        closed='false',
     )
 
 

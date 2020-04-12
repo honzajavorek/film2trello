@@ -1,6 +1,8 @@
-name: aerovod
+name: scripts
 on:
   push:
+    branches:
+      - master
   schedule:
     - cron: "0 */72 * * *"  # every three days
 jobs:
@@ -18,3 +20,4 @@ jobs:
         message: "update the list of films available at Aerovod"
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - run: python ./scripts/inbox.py
