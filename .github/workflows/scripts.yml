@@ -21,3 +21,7 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     - run: python ./scripts/inbox.py
+      env:
+        TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
+        TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
+        TRELLO_BOARD: ${{ secrets.TRELLO_BOARD }}
