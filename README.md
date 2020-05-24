@@ -49,7 +49,7 @@ The app can create cards with information about whether the film is available at
 $ python ./scripts/aerovod.py > ./film2trello/aerovod.json
 ```
 
-This repository does it automatically every three days and commits the resulting file back. It's perhaps not the purest solution, but it's the simplest way to get this thing working together with automatic GitHub deployments by ZEIT Now.
+This repository does it automatically every three days and commits the resulting file back. It's perhaps not the purest solution, but it's the simplest way to get this thing working together with automatic GitHub deployments by [Vercel](https://vercel.com).
 
 
 ## License
