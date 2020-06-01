@@ -1,7 +1,7 @@
 flask==1.1.2
 requests==2.23.0
 responses==0.10.14
-lxml==4.5.0
+lxml==4.5.1
 pytest==5.4.1
 pillow==7.1.2
 cssselect==1.1.0
