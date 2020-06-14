@@ -1,18 +1,18 @@
 # film2trello
 
-Simple app which allows me and my wife to use [Trello](http://trello.com/) as our "To Watch" list for films. Currently works with [CSFD.cz](http://csfd.cz) only.
+Simple app which allows me and my wife to use [Trello](http://trello.com/) as our "To Watch" list for films. Currently works with URLs to films at [CSFD.cz](http://csfd.cz) and [Aerovod](https://aerovod.cz).
 
 ![screenshot](screenshot.png)
 
 ## How does it work?
 
-When you navigate to the main page of the app, it allows you to submit a CSFD.cz URL of a film. When submitted, it downloads basic information about the film and creates a card in the first column (assumed inbox) of your "To Watch" Trello board.
+When you navigate to the main page of the app, it allows you to submit an URL of a film. When submitted, it downloads basic information about the film and creates a card in the first column (assumed inbox) of your "To Watch" Trello board.
 
 Your Trello username is remembered using cookies. The Trello board is hardcoded in the settings of a particular instance of the app.
 
 ### Bookmarklet
 
-After submitting your first film, the page offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on a [CSFD.cz](http://csfd.cz) page about a film, e.g. [csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
+After submitting your first film, the page offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on a page about a film, e.g. [csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
 
 
 ## Installation

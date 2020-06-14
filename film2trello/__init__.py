@@ -59,7 +59,7 @@ def post():
     username = parse_username(request.form.get('username'))
     film_url = request.form.get('film_url', '')
     try:
-        film_url = csfd.normalize_url(film_url)
+        film_url = get_film_url(film_url)
         film = get_film(film_url)
         aerovod_film = get_aerovod_film(film_url)
         card_url = create_card(username, film, aerovod_film=aerovod_film)
@@ -73,7 +73,7 @@ def post():
                                card_url=card_url, bookmarklet=bookmarklet,
                                trello_board_url=TRELLO_BOARD)
     except csfd.InvalidURLError:
-        flash(f"Not a valid CSFD.cz film URL: '{film_url}'")
+        flash(f"Not a valid film URL: '{film_url}'")
         return redirect(url_for('index'))
     except trello.InvalidUsernameError:
         flash(f"User '{username}' is not allowed to the board")
@@ -82,6 +82,26 @@ def post():
         flash(sanitize_exception(str(exc)))
         print(f'{exc} - {exc.response.text}', file=sys.stderr)
         return redirect(url_for('index'))
+
+
+def get_film_url(url):
+    # support aerovod URLs
+    if 'aerovod.cz' in url:
+        for aerovod_film in AEROVOD_DATA:
+            if aerovod_film['url'] == url:
+                return aerovod_film['csfd_url']
+
+        # ad-hoc scrape
+        res = requests.get(url, headers={'User-Agent': USER_AGENT})
+        res.raise_for_status()
+        html_tree = html.fromstring(res.content)
+        csfd_url = html_tree.cssselect('a[href*="csfd.cz"]')[0].get('href')
+        csfd_url = csfd.normalize_url(csfd_url)
+        AEROVOD_DATA.append(dict(url=url, csfd_url=csfd_url))
+        return csfd_url
+
+    # anything else
+    return csfd.normalize_url(url)
 
 
 def get_film(film_url):
