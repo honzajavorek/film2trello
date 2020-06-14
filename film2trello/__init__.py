@@ -183,7 +183,7 @@ def sanitize_exception(text):
 
 
 def create_thumbnail(response):
-    image = Image.open(response.raw)
+    image = Image.open(response.raw).convert('RGB')
     image.thumbnail(THUMBNAIL_SIZE)
     image_file = BytesIO()
     image.save(image_file, 'JPEG')
