@@ -10,10 +10,10 @@ USER_AGENT = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) '
 
 
 def generate_urls():
-    yield 'https://aerovod.cz/katalog'
+    yield 'https://aerovod.cz/katalog/vypis'
     p = 2
     while True:
-        yield f'https://aerovod.cz/katalog?p={p}'
+        yield f'https://aerovod.cz/katalog/vypis?p={p}'
         p += 1
 
 
