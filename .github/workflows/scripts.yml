@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
-    - uses: actions/setup-python@v1.1.1
+    - uses: actions/setup-python@v2
     - run: pip install -r requirements.txt
     - run: python ./scripts/aerovod.py > ./film2trello/aerovod.json
     - uses: EndBug/add-and-commit@v4.0.1
