@@ -1,5 +1,5 @@
 import re
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 
 class InvalidURLError(ValueError):
@@ -19,13 +19,18 @@ def parse_title(html_tree):
 
 
 def parse_poster_url(html_tree):
-    url = html_tree.xpath('//img[@class="film-poster"]')[0].get('src')
-    scheme, netloc, path, params, query, fragment = urlparse(url)
-    return urlunparse(('https', netloc, path, '', '', ''))
+    srcset = html_tree.xpath('//*[@class="film-posters"]//img')[0].get('srcset')
+    srcset_list = re.split(r'\s+', srcset)
+
+    urls = [f'https:{url}' for url in srcset_list[::2]]
+    zoom = [int(re.sub(r'\D', '', z)) for z in srcset_list[1::2]]
+
+    srcset_parsed = dict(zip(zoom, urls))
+    return srcset_parsed[max(srcset_parsed.keys())]
 
 
 def parse_durations(html_tree):
-    text = html_tree.xpath('//p[@class="origin"]')[0].text_content().lower()
+    text = html_tree.xpath('//*[@class="origin"]')[0].text_content().lower()
     match = re.search(r'minutáž:\s+([\d\–\-]+)\s+min', text)
     if match:
         yield from map(int, re.split(r'\D+', match.group(1)))
