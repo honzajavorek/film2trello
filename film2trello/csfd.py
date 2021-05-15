@@ -20,8 +20,10 @@ def parse_title(html_tree):
 
 def parse_poster_url(html_tree):
     srcset = html_tree.xpath('//*[@class="film-posters"]//img')[0].get('srcset')
-    srcset_list = re.split(r'\s+', srcset)
+    if not srcset:
+        return None
 
+    srcset_list = re.split(r'\s+', srcset)
     urls = [f'https:{url}' for url in srcset_list[::2]]
     zoom = [int(re.sub(r'\D', '', z)) for z in srcset_list[1::2]]
 
