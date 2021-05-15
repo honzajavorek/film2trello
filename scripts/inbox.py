@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(1, str(Path(__file__).parent.parent.absolute()))
 from film2trello import (TRELLO_TOKEN, TRELLO_KEY, TRELLO_BOARD,
                          trello, update_labels, update_attachments,
-                         get_film, get_aerovod_film, csfd)
+                         get_film, csfd)
 
 
 api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
@@ -21,6 +21,5 @@ for card in cards:
         print("Card description doesn't contain CSFD.cz URL", file=sys.stderr, flush=True)
     else:
         film = get_film(film_url)
-        aerovod_film = get_aerovod_film(film_url)
-        update_labels(api, card['id'], film, aerovod_film=aerovod_film)
-        update_attachments(api, card['id'], film, aerovod_film=aerovod_film)
+        update_labels(api, card['id'], film)
+        update_attachments(api, card['id'], film)

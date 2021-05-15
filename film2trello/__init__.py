@@ -24,20 +24,6 @@ TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 LARGE_RESPONSE_MB = 10
 THUMBNAIL_SIZE = (500, 500)
 
-AEROVOD_DATA_PATH = Path(__file__).parent / 'aerovod.json'
-try:
-    AEROVOD_DATA = [
-        (
-            dict(url=item['url'], csfd_url=csfd.normalize_url(item['csfd_url']))
-            if item['csfd_url']
-            else dict(url=item['url'], csfd_url=None)
-        )
-        for item in json.loads(AEROVOD_DATA_PATH.read_text())
-    ]
-except IOError:
-    print('Could not load Aerovod data', file=sys.stderr)
-    AEROVOD_DATA = []
-
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(16))
@@ -61,8 +47,7 @@ def post():
     try:
         film_url = get_film_url(film_url)
         film = get_film(film_url)
-        aerovod_film = get_aerovod_film(film_url)
-        card_url = create_card(username, film, aerovod_film=aerovod_film)
+        card_url = create_card(username, film)
 
         session['username'] = username
 
@@ -87,17 +72,12 @@ def post():
 def get_film_url(url):
     # support aerovod URLs
     if 'aerovod.cz' in url:
-        for aerovod_film in AEROVOD_DATA:
-            if aerovod_film['url'] == url:
-                return aerovod_film['csfd_url']
-
         # ad-hoc scrape
         res = requests.get(url, headers={'User-Agent': USER_AGENT})
         res.raise_for_status()
         html_tree = html.fromstring(res.content)
         csfd_url = html_tree.cssselect('a[href*="csfd.cz"]')[0].get('href')
         csfd_url = csfd.normalize_url(csfd_url)
-        AEROVOD_DATA.append(dict(url=url, csfd_url=csfd_url))
         return csfd_url
 
     # anything else
@@ -111,17 +91,11 @@ def get_film(film_url):
 
     return dict(url=res.url, title=csfd.parse_title(html_tree),
                 poster_url=csfd.parse_poster_url(html_tree),
-                durations=csfd.parse_durations(html_tree))
+                durations=csfd.parse_durations(html_tree),
+                aerovod_url=csfd.parse_aerovod_url(html_tree))
 
 
-def get_aerovod_film(film_url):
-    for aerovod_film in AEROVOD_DATA:
-        if aerovod_film['csfd_url'] == film_url:
-            return aerovod_film
-    return None
-
-
-def create_card(username, film, aerovod_film=None):
+def create_card(username, film):
     api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
 
     members = api.get(f'/boards/{TRELLO_BOARD}/members')
@@ -142,8 +116,8 @@ def create_card(username, film, aerovod_film=None):
         card_id = card['id']
 
     update_members(api, card_id, username)
-    update_labels(api, card_id, film, aerovod_film=aerovod_film)
-    update_attachments(api, card_id, film, aerovod_film=aerovod_film)
+    update_labels(api, card_id, film)
+    update_attachments(api, card_id, film)
     return f'https://trello.com/c/{card_id}'
 
 
@@ -154,10 +128,10 @@ def update_members(api, card_id, username):
         api.post(f'/cards/{card_id}/members', data=dict(value=user['id']))
 
 
-def update_labels(api, card_id, film, aerovod_film=None):
+def update_labels(api, card_id, film):
     existing_labels = api.get(f'/cards/{card_id}/labels')
     labels = list(trello.prepare_duration_labels(film['durations']))
-    if aerovod_film:
+    if film.get('aerovod_url'):
         labels.append(trello.AEROVOD_LABEL)
     labels = trello.get_missing_labels(existing_labels, labels)
     for label in labels:
@@ -168,11 +142,11 @@ def update_labels(api, card_id, film, aerovod_film=None):
                 raise e
 
 
-def update_attachments(api, card_id, film, aerovod_film=None):
+def update_attachments(api, card_id, film):
     existing_attachments = api.get(f'/cards/{card_id}/attachments')
     urls = [film['url']]
-    if aerovod_film:
-        urls.append(aerovod_film['url'])
+    if film.get('aerovod_url'):
+        urls.append(film['aerovod_url'])
     urls = trello.get_missing_attached_urls(existing_attachments, urls)
     for url in urls:
         api.post(f'/cards/{card_id}/attachments', data=dict(url=url))
