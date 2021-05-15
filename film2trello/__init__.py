@@ -24,6 +24,8 @@ TRELLO_BOARD = os.getenv('TRELLO_BOARD')
 LARGE_RESPONSE_MB = 10
 THUMBNAIL_SIZE = (500, 500)
 
+CSFD_URL_RE = re.compile(r'https?://(www\.)?csfd\.cz/[^"]+')
+
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(16))
@@ -73,12 +75,14 @@ def get_film_url(url):
     # support aerovod URLs
     if 'aerovod.cz' in url:
         # ad-hoc scrape
-        res = requests.get(url, headers={'User-Agent': USER_AGENT})
+        res = requests.get(url, headers={'User-Agent': USER_AGENT}, stream=True)
         res.raise_for_status()
-        html_tree = html.fromstring(res.content)
-        csfd_url = html_tree.cssselect('a[href*="csfd.cz"]')[0].get('href')
-        csfd_url = csfd.normalize_url(csfd_url)
-        return csfd_url
+        for line in res.iter_lines(decode_unicode=True):
+            print(repr(line))
+            match = CSFD_URL_RE.search(line)
+            if match:
+                return csfd.normalize_url(match.group(0))
+        raise ValueError("Aerovod page doesn't contain CSFD.cz URL")
 
     # anything else
     return csfd.normalize_url(url)
