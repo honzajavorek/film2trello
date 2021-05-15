@@ -59,6 +59,3 @@ target/
 # Now
 .now
 .env
-
-# Aerovod data
-aerovod.json

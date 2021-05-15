@@ -1,3 +1,6 @@
+from pathlib import Path
+
+import responses
 import pytest
 
 import film2trello
@@ -30,3 +33,23 @@ def test_compress_javascript():
           console.log('Hello!');
         })()
     ''') == "(function() { window.alert('Hello!'); console.log('Hello!'); })()"
+
+
+@responses.activate
+def test_get_film_url():
+    url = film2trello.get_film_url('https://www.csfd.cz/film/988751-smolny-pich-aneb-pitomy-porno/prehled/')
+
+    assert url == 'https://www.csfd.cz/film/988751/'
+    assert len(responses.calls) == 0
+
+
+@responses.activate
+def test_get_film_url_aerovod():
+    responses.add(responses.GET,
+                  'https://aerovod.cz/katalog/smolny-pich-aneb-pitomy-porno',
+                  body=(Path(__file__).parent / 'aerovod.html').read_bytes(),
+                  status=200)
+    url = film2trello.get_film_url('https://aerovod.cz/katalog/smolny-pich-aneb-pitomy-porno')
+
+    assert url == 'https://www.csfd.cz/film/988751/'
+    assert len(responses.calls) == 1
