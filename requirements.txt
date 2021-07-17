@@ -1,4 +1,4 @@
-flask<2
+flask==2.0.1
 requests==2.25.1
 responses==0.13.3
 lxml==4.6.3
