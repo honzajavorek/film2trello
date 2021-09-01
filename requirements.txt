@@ -1,6 +1,6 @@
 flask==2.0.1
 requests==2.25.1
-responses==0.13.3
+responses==0.13.4
 lxml==4.6.3
 pytest==6.2.5
 pillow==8.3.1
