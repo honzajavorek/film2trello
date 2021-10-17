@@ -73,7 +73,7 @@ def post():
         return redirect(url_for('index'))
     except requests.RequestException as exc:
         flash(sanitize_exception(str(exc)))
-        print(f'{exc} - {exc.response.text}', file=sys.stderr)
+        print(f'{exc} - {exc.response.text if exc.response else "[no response]"}', file=sys.stderr)
         return redirect(url_for('index'))
 
 
