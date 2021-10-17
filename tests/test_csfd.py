@@ -58,6 +58,13 @@ def test_parse_poster_url(csfd_html):
     assert csfd.parse_poster_url(csfd_html) == url
 
 
+def test_parse_poster_url_no_image():
+    path = Path(__file__).parent / 'csfd_no_image.html'
+    csfd_html = html.fromstring(path.read_text())
+
+    assert csfd.parse_poster_url(csfd_html) == None
+
+
 def test_parse_duration(csfd_html):
     assert list(csfd.parse_durations(csfd_html)) == [105]
 

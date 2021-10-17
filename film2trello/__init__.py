@@ -161,7 +161,7 @@ def update_attachments(api, card_id, film):
     for url in urls:
         api.post(f'/cards/{card_id}/attachments', data=dict(url=url))
 
-    if not trello.has_poster(existing_attachments):
+    if not trello.has_poster(existing_attachments) and film['poster_url']:
         with requests.get(film['poster_url'], stream=True) as response:
             api.post(f'/cards/{card_id}/attachments',
                      files=dict(file=create_thumbnail(response)))
