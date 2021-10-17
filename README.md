@@ -34,12 +34,19 @@ Create a virtual environment and install dependencies from the `requirements.txt
 $ FLASK_DEBUG=1 FLASK_APP=film2trello flask run --port=3000 --reload
 ```
 
-To see how the app will behave when deployed, [install now](https://zeit.co/download) and run `now dev`. For that, you'll also need a local `.env` file with all the necessary environment variables (see [docs](https://err.sh/now/missing-env-file)).
-
 ### Deployment
 
-You can deploy manually by [installing now](https://zeit.co/download) and running `now` or `now --prod` it in the directory of the project. To set the environment variables, use `now secrets`.
+The app runs on [Fly.io](https://fly.io/). Install their `flyctl`. Then you can do things like `flyctl launch --name=film2trello` or `flyctl deploy`. Use the following to prepare the environment:
 
+```
+$ flyctl secrets set TRELLO_KEY=... TRELLO_TOKEN=... TRELLO_BOARD=... FLASK_SECRET_KEY=...
+```
+
+The app also uses GitHub Actions. It needs the `TRELLO_BOARD`, `TRELLO_KEY`, and `TRELLO_TOKEN` secrets set on the [secrets setting page](https://github.com/honzajavorek/film2trello/settings/secrets/actions). The rest is in the `.github` directory.
+
+### Automatic Deployment
+
+Set GitHub Actions secret `FLY_API_TOKEN` to a value you get by running `flyctl auth token`.
 
 ## License
 

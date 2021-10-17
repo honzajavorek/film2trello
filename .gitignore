@@ -55,7 +55,3 @@ target/
 
 # pytest
 .pytest_cache
-
-# Now
-.now
-.env

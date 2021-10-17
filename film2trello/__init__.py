@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 from flask import (Flask, render_template, request, redirect, url_for, session,
-                   flash)
+                   flash, send_from_directory)
 from lxml import html
 import requests
 from PIL import Image
@@ -29,6 +29,12 @@ CSFD_URL_RE = re.compile(r'https?://(www\.)?csfd\.cz/[^"]+')
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', os.urandom(16))
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(Path(app.root_path) / 'static',
+                               'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
 @app.route('/', methods=['GET', 'POST'])
