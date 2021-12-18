@@ -101,7 +101,7 @@ def get_film(film_url):
 
     return dict(url=res.url, title=csfd.parse_title(html_tree),
                 poster_url=csfd.parse_poster_url(html_tree),
-                durations=csfd.parse_durations(html_tree),
+                durations=list(csfd.parse_durations(html_tree)),
                 aerovod_url=csfd.parse_aerovod_url(html_tree))
 
 

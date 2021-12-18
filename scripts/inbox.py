@@ -12,14 +12,31 @@ lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
 inbox_list_id = trello.get_inbox_id(lists)
 cards = api.get(f'/lists/{inbox_list_id}/cards')
 
-for card in cards:
+column = [{'card': card} for card in cards]
+for item in column:
+    card = item['card']
     print(card['name'], file=sys.stderr, flush=True)
     try:
         film_url = csfd.normalize_url(card['desc'])
         print(film_url, file=sys.stderr, flush=True)
     except csfd.InvalidURLError as e:
         print("Card description doesn't contain CSFD.cz URL", file=sys.stderr, flush=True)
+        item['film'] = None
     else:
         film = get_film(film_url)
         update_labels(api, card['id'], film)
         update_attachments(api, card['id'], film)
+        item['film'] = film
+
+def sort_key(item):
+    film, card = item['film'], item['card']
+
+    min_duration = min(film['durations']) if (film and film['durations']) else 1000
+    labels = [label['name'].lower() for label in card['labels'] or []]
+    is_available = 0 if (('aerovod' in labels) or ('stash' in labels)) else 1
+
+    return (min_duration, is_available, card['name'])
+
+for pos, item in enumerate(sorted(column, key=sort_key), start=1):
+    print(f'#{pos}', item['card']['name'], file=sys.stderr, flush=True)
+    api.put(f"/cards/{item['card']['id']}/", data=dict(pos=pos))
