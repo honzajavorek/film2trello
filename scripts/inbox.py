@@ -1,3 +1,4 @@
+import time
 import sys
 from pathlib import Path
 
@@ -40,3 +41,4 @@ def sort_key(item):
 for pos, item in enumerate(sorted(column, key=sort_key), start=1):
     print(f'#{pos}', item['card']['name'], file=sys.stderr, flush=True)
     api.put(f"/cards/{item['card']['id']}/", data=dict(pos=pos))
+    time.sleep(0.5)
