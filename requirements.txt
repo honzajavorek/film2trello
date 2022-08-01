@@ -3,6 +3,6 @@ requests==2.28.1
 responses==0.21.0
 lxml==4.9.1
 pytest==7.1.2
-pillow==9.1.1
+pillow==9.2.0
 cssselect==1.1.0
 gunicorn==20.1.0
