@@ -78,17 +78,16 @@ def post():
 
 
 def get_film_url(url):
-    # support aerovod URLs
-    if 'aerovod.cz' in url:
+    # support KVIFF.TV URLs
+    if 'kviff.tv' in url:
         # ad-hoc scrape
         res = requests.get(url, headers={'User-Agent': USER_AGENT}, stream=True)
         res.raise_for_status()
         for line in res.iter_lines(decode_unicode=True):
-            print(repr(line))
             match = CSFD_URL_RE.search(line)
             if match:
                 return csfd.normalize_url(match.group(0))
-        raise ValueError("Aerovod page doesn't contain CSFD.cz URL")
+        raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
 
     # anything else
     return csfd.normalize_url(url)
@@ -102,7 +101,7 @@ def get_film(film_url):
     return dict(url=res.url, title=csfd.parse_title(html_tree),
                 poster_url=csfd.parse_poster_url(html_tree),
                 durations=list(csfd.parse_durations(html_tree)),
-                aerovod_url=csfd.parse_aerovod_url(html_tree))
+                kvifftv_url=csfd.parse_kvifftv_url(html_tree))
 
 
 def create_card(username, film):
@@ -141,8 +140,8 @@ def update_members(api, card_id, username):
 def update_labels(api, card_id, film):
     existing_labels = api.get(f'/cards/{card_id}/labels')
     labels = list(trello.prepare_duration_labels(film['durations']))
-    if film.get('aerovod_url'):
-        labels.append(trello.AEROVOD_LABEL)
+    if film.get('kvifftv_url'):
+        labels.append(trello.KVIFFTV_LABEL)
     labels = trello.get_missing_labels(existing_labels, labels)
     for label in labels:
         try:
@@ -155,8 +154,8 @@ def update_labels(api, card_id, film):
 def update_attachments(api, card_id, film):
     existing_attachments = api.get(f'/cards/{card_id}/attachments')
     urls = [film['url']]
-    if film.get('aerovod_url'):
-        urls.append(film['aerovod_url'])
+    if film.get('kvifftv_url'):
+        urls.append(film['kvifftv_url'])
     urls = trello.get_missing_attached_urls(existing_attachments, urls)
     for url in urls:
         api.post(f'/cards/{card_id}/attachments', data=dict(url=url))

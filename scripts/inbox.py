@@ -34,7 +34,7 @@ def sort_key(item):
 
     min_duration = min(film['durations']) if (film and film['durations']) else 1000
     labels = [label['name'].lower() for label in card['labels'] or []]
-    is_available = 0 if (('aerovod' in labels) or ('stash' in labels)) else 1
+    is_available = 0 if (('kviff.tv' in labels) or ('stash' in labels)) else 1
 
     return (min_duration, is_available, card['name'])
 

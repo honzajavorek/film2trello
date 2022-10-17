@@ -83,13 +83,13 @@ def test_parse_duration_tvshow():
     assert list(csfd.parse_durations(csfd_html)) == [59, 65]
 
 
-def test_parse_aerovod_url():
-    path = Path(__file__).parent / 'csfd_aerovod.html'
+def test_parse_kvifftv_url():
+    path = Path(__file__).parent / 'csfd_kvifftv.html'
     csfd_html = html.fromstring(path.read_text())
 
-    aerovod_url = 'https://aerovod.cz/katalog/smolny-pich-aneb-pitomy-porno'
-    assert csfd.parse_aerovod_url(csfd_html) == aerovod_url
+    kvifftv_url = 'https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno'
+    assert csfd.parse_kvifftv_url(csfd_html) == kvifftv_url
 
 
-def test_parse_aerovod_url_missing(csfd_html):
-    assert csfd.parse_aerovod_url(csfd_html) is None
+def test_parse_kvifftv_url_missing(csfd_html):
+    assert csfd.parse_kvifftv_url(csfd_html) is None

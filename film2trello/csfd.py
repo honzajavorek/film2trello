@@ -58,8 +58,8 @@ def parse_durations(html_tree):
             yield int(match.group(1))
 
 
-def parse_aerovod_url(html_tree):
+def parse_kvifftv_url(html_tree):
     try:
-        return html_tree.cssselect('[href*="aerovod.cz/katalog"]')[0].get('href')
+        return html_tree.cssselect('[href*="kviff.tv/katalog"]')[0].get('href')
     except IndexError:
         return None

@@ -17,7 +17,7 @@ COLORS = {
     '3+h': 'purple',
 }
 
-AEROVOD_LABEL = dict(name='Aerovod', color='black')
+KVIFFTV_LABEL = dict(name='KVIFF.TV', color='black')
 
 
 class InvalidUsernameError(ValueError):

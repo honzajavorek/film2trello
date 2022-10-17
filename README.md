@@ -1,6 +1,6 @@
 # film2trello
 
-Simple app which allows me and my wife to use [Trello](http://trello.com/) as our "To Watch" list for films. Currently works with URLs to films at [CSFD.cz](http://csfd.cz) and [Aerovod](https://aerovod.cz).
+Simple app which allows me and my wife to use [Trello](http://trello.com/) as our "To Watch" list for films. Currently works with URLs to films at [CSFD.cz](http://csfd.cz) and [KVIFF.TV](https://kviff.tv).
 
 ![screenshot](screenshot.png)
 

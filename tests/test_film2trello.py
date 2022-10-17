@@ -44,12 +44,12 @@ def test_get_film_url():
 
 
 @responses.activate
-def test_get_film_url_aerovod():
+def test_get_film_url_kvifftv():
     responses.add(responses.GET,
-                  'https://aerovod.cz/katalog/smolny-pich-aneb-pitomy-porno',
-                  body=(Path(__file__).parent / 'aerovod.html').read_bytes(),
+                  'https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno',
+                  body=(Path(__file__).parent / 'kvifftv.html').read_bytes(),
                   status=200)
-    url = film2trello.get_film_url('https://aerovod.cz/katalog/smolny-pich-aneb-pitomy-porno')
+    url = film2trello.get_film_url('https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno')
 
     assert url == 'https://www.csfd.cz/film/988751/'
     assert len(responses.calls) == 1

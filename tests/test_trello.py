@@ -123,13 +123,13 @@ def test_get_missing_labels():
         {'id': '...', 'idBoard': '...', 'name': '3+h', 'color': 'purple'},
     ]
     labels = [
-        dict(name='Aerovod', color='black'),
+        dict(name='KVIFF.TV', color='black'),
         dict(name='3+h', color='purple'),
         dict(name='2.5h', color='red'),
     ]
 
     assert trello.get_missing_labels(existing_labels, labels) == [
-        dict(name='Aerovod', color='black'),
+        dict(name='KVIFF.TV', color='black'),
     ]
 
 
@@ -150,11 +150,11 @@ def test_get_missing_attached_urls():
     ]
     urls = [
         'https://www.csfd.cz/film/642698/',
-        'https://aerovod.cz/katalog/slunovrat',
+        'https://kviff.tv/katalog/slunovrat',
     ]
 
     assert trello.get_missing_attached_urls(existing_attachments, urls) == [
-        'https://aerovod.cz/katalog/slunovrat',
+        'https://kviff.tv/katalog/slunovrat',
     ]
 
 
@@ -177,7 +177,7 @@ def test_has_poster():
     ]
     urls = [
         'https://www.csfd.cz/film/642698/',
-        'https://aerovod.cz/katalog/slunovrat',
+        'https://kviff.tv/katalog/slunovrat',
     ]
 
     assert trello.has_poster(existing_attachments) == True
