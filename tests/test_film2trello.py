@@ -17,7 +17,7 @@ def test_parse_username(username, expected):
 
 
 def sanitize_exception():
-    film2trello.sanitize_exception(f'''
+    assert film2trello.sanitize_exception(f'''
         This is my token: {film2trello.TRELLO_TOKEN}
         And this is my key: {film2trello.TRELLO_KEY}
     ''') == '''
@@ -27,7 +27,7 @@ def sanitize_exception():
 
 
 def test_compress_javascript():
-    film2trello.compress_javascript('''
+    assert film2trello.compress_javascript('''
         (function() {
           window.alert('Hello!');
           console.log('Hello!');
@@ -53,3 +53,19 @@ def test_get_film_url_kvifftv():
 
     assert url == 'https://www.csfd.cz/film/988751/'
     assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_get_film_url_imdb():
+    responses.add(responses.GET,
+                  'https://www.imdb.com/title/tt1433540/',
+                  body=(Path(__file__).parent / 'imdb.html').read_bytes(),
+                  status=200)
+    responses.add(responses.GET,
+                  'https://www.csfd.cz/hledat/?q=A+Town+Called+Panic+%282009%29',
+                  body=(Path(__file__).parent / 'imdb_csfd_search.html').read_bytes(),
+                  status=200)
+    url = film2trello.get_film_url('https://www.imdb.com/title/tt1433540/')
+
+    assert url == 'https://www.csfd.cz/film/261748/'
+    assert len(responses.calls) == 2

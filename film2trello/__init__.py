@@ -79,7 +79,7 @@ def post():
 
 def get_film_url(url):
     # support KVIFF.TV URLs
-    if 'kviff.tv' in url:
+    if 'kviff.tv/katalog/' in url:
         # ad-hoc scrape
         res = requests.get(url, headers={'User-Agent': USER_AGENT}, stream=True)
         res.raise_for_status()
@@ -88,6 +88,20 @@ def get_film_url(url):
             if match:
                 return csfd.normalize_url(match.group(0))
         raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
+
+    if 'imdb.com/title/tt' in url:
+        # ad-hoc scrape
+        res = requests.get(url, headers={'User-Agent': USER_AGENT})
+        res.raise_for_status()
+        html_tree = html.fromstring(res.content)
+        title = str(html_tree.cssselect('title')[0].text_content() or '').replace(' - IMDb', '')
+        res = requests.get('https://www.csfd.cz/hledat/',
+                           params={'q': title},
+                           headers={'User-Agent': USER_AGENT})
+        res.raise_for_status()
+        html_tree = html.fromstring(res.content)
+        html_tree.make_links_absolute(res.url)
+        return csfd.normalize_url(html_tree.cssselect('.film-title-name')[0].get('href'))
 
     # anything else
     return csfd.normalize_url(url)
@@ -172,7 +186,7 @@ def render_bookmarklet(*args, **kwargs):
 
 def compress_javascript(code):
     """Compress JS to just one line"""
-    return re.sub(r'\s+', ' ', code)
+    return re.sub(r'\s+', ' ', code).strip()
 
 
 def parse_username(username):
