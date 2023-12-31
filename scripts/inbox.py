@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 import time
 import sys
 from pathlib import Path
@@ -10,10 +11,21 @@ from film2trello import (TRELLO_TOKEN, TRELLO_KEY, TRELLO_BOARD,
 
 api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
 lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
-inbox_list_id = trello.get_inbox_id(lists)
-cards = api.get(f'/lists/{inbox_list_id}/cards')
 
+inbox_list_id = trello.get_inbox_id(lists)
+archive_list_id = trello.get_archive_id(lists)
+
+years_ago = date.today() - timedelta(days=365 * 2)
+years_old_cards = api.get(f'/lists/{inbox_list_id}/cards?before={years_ago}')
+
+print(f"Found {len(years_old_cards)} years old cards", file=sys.stderr, flush=True)
+for card in years_old_cards:
+    print(card['name'], file=sys.stderr, flush=True)
+    api.put(f"/cards/{card['id']}/", data=dict(idList=archive_list_id))
+
+cards = api.get(f'/lists/{inbox_list_id}/cards')
 column = [{'card': card} for card in cards]
+
 for item in column:
     card = item['card']
     print(card['name'], file=sys.stderr, flush=True)

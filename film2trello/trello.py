@@ -47,6 +47,10 @@ def get_inbox_id(lists):
     return lists[0]['id']
 
 
+def get_archive_id(lists):
+    return lists[-1]['id']
+
+
 def prepare_card_data(list_id, film):
     return dict(
         name=film['title'],
