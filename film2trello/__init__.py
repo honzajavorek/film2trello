@@ -125,15 +125,18 @@ def create_card(username, film):
     if trello.not_in_members(username, members):
         raise trello.InvalidUsernameError()
 
-    cards = api.get(f'/boards/{TRELLO_BOARD}/cards',
-                    params=dict(filter='open'))
+    lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
+    inbox_list_id = trello.get_inbox_id(lists)
+    archive_list_id = trello.get_archive_id(lists)
+
+    inbox_cards = api.get(f'/lists/{inbox_list_id}/cards')
+    archive_cards = api.get(f'/lists/{archive_list_id}/cards')
+    cards = inbox_cards + archive_cards
 
     card_id = trello.card_exists(cards, film)
     if card_id:
-        api.put(f'/cards/{card_id}/', data=trello.prepare_updated_card_data())
+        api.put(f'/cards/{card_id}/', data=trello.prepare_updated_card_data(inbox_list_id))
     else:
-        lists = api.get(f'/boards/{TRELLO_BOARD}/lists')
-        inbox_list_id = trello.get_inbox_id(lists)
         card_data = trello.prepare_card_data(inbox_list_id, film)
         card = api.post('/cards', data=card_data)
         card_id = card['id']

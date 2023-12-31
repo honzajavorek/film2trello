@@ -60,9 +60,10 @@ def prepare_card_data(list_id, film):
     )
 
 
-def prepare_updated_card_data():
+def prepare_updated_card_data(list_id):
     return dict(
         pos='top',
+        idList=list_id,
     )
 
 
