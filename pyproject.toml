@@ -1,0 +1,48 @@
+[tool.poetry]
+name = "film2trello"
+version = "0.0.0"
+description = "Turns film links to Trello cards 🍿"
+authors = ["Honza Javorek <mail@honzajavorek.cz>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/honzajavorek/film2trello/"
+
+[tool.poetry.scripts]
+film2trello = "film2trello:cli.main"
+
+[tool.poetry.dependencies]
+python = "3.11.*"
+python-telegram-bot = "20.7"
+click = "8.1.7"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "7.4.2"
+black = "23.9.1"
+isort = "5.13.2"
+
+[tool.pytest.ini_options]
+python_files = "test_*.py *_test.py test.py"
+testpaths = "."
+norecursedirs = "node_modules legacy"
+addopts = "--ff"
+#filterwarnings = [
+#    "ignore:the imp module is deprecated:DeprecationWarning",
+#    "ignore:_unicode_safe_getattr is deprecated:DeprecationWarning",
+#    "ignore:invalid escape sequence:DeprecationWarning",
+#    "ignore:\"is not\" with a literal:SyntaxWarning",
+#]
+
+[tool.black]
+target-versions = ["py311"]
+include = "\\.py$"
+exclude = "legacy"
+
+[tool.isort]
+profile = "black"
+lines_after_imports = 2
+combine_as_imports = true
+extend_skip = ["legacy"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
