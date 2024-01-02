@@ -26,17 +26,22 @@ async def start_command(
     if not update.message:
         raise ValueError(f"No message available")
     await update.message.reply_html(
-        f"Ahoj {user.mention_html()}! "
-        f"Můžeš mi posílat odkazy na ČSFD a já je budu ukládat do tohoto Trella: {board_url} "
-        f"Na kartičku přiřadím Trello uživatele <code>{dict(users)[user.id]}</code>."
+        f"Ahoj {user.mention_html()}! {help(board_url, dict(users)[user.id])}"
     )
 
 
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def help_command(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    users: list[tuple[int, str]],
+    board_url: str,
+) -> None:
+    user = update.effective_user
+    if not user:
+        raise ValueError(f"No user available")
     if not update.message:
-        logger.warning(f"No message available")
-        return
-    await update.message.reply_text("Help!")
+        raise ValueError(f"No message available")
+    await update.message.reply_html(help(board_url, dict(users)[user.id]))
 
 
 async def save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -45,6 +50,13 @@ async def save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     text = update.message.text or ""
     await update.message.reply_text(
         f"Dostal jsem zprávu: {text} Výtečně! Akorát s ní zatím neumím nic dělat."
+    )
+
+
+def help(board_url: str, username: str) -> str:
+    return (
+        f"Ahoj! Můžeš mi posílat odkazy na ČSFD a já je budu ukládat do tohoto Trella: {board_url} "
+        f"Na kartičku přiřadím Trello uživatele <code>{username}</code>."
     )
 
 
@@ -67,7 +79,7 @@ def run(
             ),
             CommandHandler(
                 "help",
-                help_command,
+                partial(help_command, users=users, board_url=board_url),
                 user_filter,
             ),
             MessageHandler(
