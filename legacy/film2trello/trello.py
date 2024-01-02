@@ -3,7 +3,7 @@ import math
 
 import requests
 
-from . import csfd
+from ...film2trello import csfd
 
 
 COLORS = {

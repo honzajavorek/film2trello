@@ -2,6 +2,7 @@ import logging
 from functools import partial
 
 from telegram import Update
+from telegram.constants import MessageEntityType
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -9,6 +10,8 @@ from telegram.ext import (
     MessageHandler,
     filters,
 )
+
+from film2trello.core import process_message
 
 
 logger = logging.getLogger("film2trello.bot")
@@ -44,19 +47,36 @@ async def help_command(
     await update.message.reply_html(help(board_url, dict(users)[user.id]))
 
 
-async def save(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def save(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    users: list[tuple[int, str]],
+    board_url: str,
+) -> None:
+    user = update.effective_user
+    if not user:
+        raise ValueError(f"No user available")
     if not update.message:
         raise ValueError(f"No message available")
-    text = update.message.text or ""
-    await update.message.reply_text(
-        f"Dostal jsem zprávu: {text} Výtečně! Akorát s ní zatím neumím nic dělat."
-    )
+    try:
+        state = await process_message(update.message.text or "")
+    except Exception as e:
+        logger.exception(e)
+        await update.message.reply_html(
+            f"Stala se nějaká chyba 😢\n\n"
+            f"<pre>{e}</pre>\n\n"
+            f"{help(board_url, dict(users)[user.id])}"
+        )
+    else:
+        await update.message.reply_html(f"<pre>{state!r}</pre>")
 
 
 def help(board_url: str, username: str) -> str:
     return (
-        f"Ahoj! Můžeš mi posílat odkazy na ČSFD a já je budu ukládat do tohoto Trella: {board_url} "
-        f"Na kartičku přiřadím Trello uživatele <code>{username}</code>."
+        f"Můžeš mi posílat odkazy na filmy z KVIFF.TV nebo ČSFD a já je budu ukládat do tohoto Trella: {board_url} "
+        f"Na kartičku přiřadím Trello uživatele <code>{username}</code>. "
+        "Pokud pošleš odkaz na seriál, uložím ti jeho první sérii. "
+        "Jestli chceš zaznamenat jinou sérii, musíš poslat odkaz přímo na ni. "
     )
 
 
@@ -84,7 +104,7 @@ def run(
             ),
             MessageHandler(
                 user_filter & filters.TEXT & ~filters.COMMAND,
-                save,
+                partial(save, users=users, board_url=board_url),
             ),
         ]
     )

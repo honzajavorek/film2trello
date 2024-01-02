@@ -19,7 +19,7 @@ from lxml import html
 import requests
 from PIL import Image
 
-from . import csfd
+from ...film2trello import csfd
 from . import trello
 
 
