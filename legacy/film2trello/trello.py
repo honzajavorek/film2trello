@@ -7,17 +7,17 @@ from . import csfd
 
 
 COLORS = {
-    '20m': 'blue',
-    '30m': 'sky',
-    '45m': 'green',
-    '1h': 'lime',
-    '1.5h': 'yellow',
-    '2h': 'orange',
-    '2.5h': 'red',
-    '3+h': 'purple',
+    "20m": "blue",
+    "30m": "sky",
+    "45m": "green",
+    "1h": "lime",
+    "1.5h": "yellow",
+    "2h": "orange",
+    "2.5h": "red",
+    "3+h": "purple",
 }
 
-KVIFFTV_LABEL = dict(name='KVIFF.TV', color='black')
+KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
 
 
 class InvalidUsernameError(ValueError):
@@ -26,7 +26,7 @@ class InvalidUsernameError(ValueError):
 
 def create_session(token, key):
     def prefix_request(f, method, url, *args, **kwargs):
-        url = 'https://trello.com/1/' + url.lstrip('/')
+        url = "https://trello.com/1/" + url.lstrip("/")
         response = f(method, url, *args, **kwargs)
         response.raise_for_status()
         return response.json()
@@ -39,36 +39,36 @@ def create_session(token, key):
 
 def card_exists(cards, film):
     for card in cards:
-        if film['title'] in card['name'] or film['url'] in card['desc']:
-            return card['id']
+        if film["title"] in card["name"] or film["url"] in card["desc"]:
+            return card["id"]
 
 
 def get_inbox_id(lists):
-    return lists[0]['id']
+    return lists[0]["id"]
 
 
 def get_archive_id(lists):
-    return lists[-1]['id']
+    return lists[-1]["id"]
 
 
 def prepare_card_data(list_id, film):
     return dict(
-        name=film['title'],
-        desc=film['url'],
+        name=film["title"],
+        desc=film["url"],
         idList=list_id,
-        pos='top',
+        pos="top",
     )
 
 
 def prepare_updated_card_data(list_id):
     return dict(
-        pos='top',
+        pos="top",
         idList=list_id,
     )
 
 
 def not_in_members(username, members):
-    return username not in [member['username'] for member in members]
+    return username not in [member["username"] for member in members]
 
 
 def prepare_duration_labels(durations):
@@ -80,26 +80,26 @@ def prepare_duration_labels(durations):
 def get_duration_bracket(duration):
     duration_cca = math.floor(duration / 10.0) * 10
     if duration <= 20:
-        return '20m'
+        return "20m"
     elif duration <= 30:
-        return '30m'
+        return "30m"
     elif duration <= 45:
-        return '45m'
+        return "45m"
     if duration <= 60:
-        return '1h'
+        return "1h"
     if duration_cca <= 90:
-        return '1.5h'
+        return "1.5h"
     if duration_cca <= 120:
-        return '2h'
+        return "2h"
     if duration_cca <= 150:
-        return '2.5h'
+        return "2.5h"
     else:
-        return '3+h'
+        return "3+h"
 
 
 def get_missing_labels(existing_labels, labels):
-    names = {label['name'] for label in existing_labels}
-    return [label for label in labels if label['name'] not in names]
+    names = {label["name"] for label in existing_labels}
+    return [label for label in labels if label["name"] not in names]
 
 
 def get_missing_attached_urls(existing_attachments, urls):
@@ -110,15 +110,15 @@ def get_missing_attached_urls(existing_attachments, urls):
             return url
 
     existing_urls = {
-        normalize_url(attach['name'])
+        normalize_url(attach["name"])
         for attach in existing_attachments
-        if attach['name'] == attach['url']
+        if attach["name"] == attach["url"]
     }
     return [url for url in urls if normalize_url(url) not in existing_urls]
 
 
 def has_poster(attachments):
     for attachment in attachments:
-        if len(attachment['previews']):
+        if len(attachment["previews"]):
             return True
     return False
