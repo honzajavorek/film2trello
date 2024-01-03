@@ -44,20 +44,6 @@ def post():
         film_url = get_film_url(film_url)
         film = get_film(film_url)
         card_url = create_card(username, film)
-
-        session["username"] = username
-
-        bookmarklet = render_bookmarklet(
-            "bookmarklet.js", url=url_for("index", _external=True), username=username
-        )
-        return render_template(
-            "submission.html",
-            username=username,
-            film=film,
-            card_url=card_url,
-            bookmarklet=bookmarklet,
-            trello_board_url=TRELLO_BOARD,
-        )
     except csfd.InvalidURLError:
         flash(f"Not a valid film URL: '{film_url}'")
         return redirect(url_for("index"))
@@ -71,56 +57,6 @@ def post():
             file=sys.stderr,
         )
         return redirect(url_for("index"))
-
-
-def get_film_url(url):
-    # support KVIFF.TV URLs
-    if "kviff.tv/katalog/" in url:
-        # ad-hoc scrape
-        res = requests.get(url, headers={"User-Agent": USER_AGENT}, stream=True)
-        res.raise_for_status()
-        for line in res.iter_lines(decode_unicode=True):
-            match = CSFD_URL_RE.search(line)
-            if match:
-                return csfd.normalize_url(match.group(0))
-        raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
-
-    if "imdb.com/title/tt" in url:
-        # ad-hoc scrape
-        res = requests.get(url, headers={"User-Agent": USER_AGENT})
-        res.raise_for_status()
-        html_tree = html.fromstring(res.content)
-        title = str(html_tree.cssselect("title")[0].text_content() or "").replace(
-            " - IMDb", ""
-        )
-        res = requests.get(
-            "https://www.csfd.cz/hledat/",
-            params={"q": title},
-            headers={"User-Agent": USER_AGENT},
-        )
-        res.raise_for_status()
-        html_tree = html.fromstring(res.content)
-        html_tree.make_links_absolute(res.url)
-        return csfd.normalize_url(
-            html_tree.cssselect(".film-title-name")[0].get("href")
-        )
-
-    # anything else
-    return csfd.normalize_url(url)
-
-
-def get_film(film_url):
-    res = requests.get(film_url, headers={"User-Agent": USER_AGENT})
-    res.raise_for_status()
-    html_tree = html.fromstring(res.content)
-
-    return dict(
-        url=res.url,
-        title=csfd.parse_title(html_tree),
-        poster_url=csfd.parse_poster_url(html_tree),
-        durations=list(csfd.parse_durations(html_tree)),
-        kvifftv_url=csfd.parse_kvifftv_url(html_tree),
-    )
 
 
 def create_card(username, film):
@@ -190,19 +126,6 @@ def update_attachments(api, card_id, film):
                 f"/cards/{card_id}/attachments",
                 files=dict(file=create_thumbnail(response)),
             )
-
-
-def render_bookmarklet(*args, **kwargs):
-    return compress_javascript(render_template(*args, **kwargs))
-
-
-def compress_javascript(code):
-    """Compress JS to just one line"""
-    return re.sub(r"\s+", " ", code).strip()
-
-
-def parse_username(username):
-    return None if username in ("None", "") else username
 
 
 def sanitize_exception(text):
