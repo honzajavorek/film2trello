@@ -2,8 +2,8 @@ import logging
 import re
 from typing import Any
 
-from lxml import html
 import httpx
+from lxml import html
 
 from film2trello import csfd
 

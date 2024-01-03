@@ -1,7 +1,7 @@
-from lxml import html
 from pathlib import Path
 
 import pytest
+from lxml import html
 
 from film2trello import csfd
 

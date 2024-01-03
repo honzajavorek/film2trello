@@ -1,5 +1,6 @@
 import re
 from typing import Generator
+
 from lxml import html
 
 
