@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import Any
+from typing import Any, Iterable
 
 import httpx
 from lxml import html
@@ -26,14 +26,7 @@ async def process_message(message_text: str) -> dict[str, Any]:
         input_url = match.group(0)
         logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
         response = await httpx_get(input_url)
-        csfd_url = None
-        for line in response.iter_lines():
-            match = CSFD_URL_RE.search(line)
-            if match:
-                csfd_url = match.group(0)
-                break
-        if not csfd_url:
-            raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
+        csfd_url = find_csfd_url(response.iter_lines())
     elif match := CSFD_URL_RE.search(message_text):
         logger.info("Detected CSFD.cz URL")
         input_url = csfd_url = match.group(0)
@@ -82,3 +75,11 @@ async def httpx_get(url: str) -> httpx.Response:
         )
         response.raise_for_status()
         return response
+
+
+def find_csfd_url(response_lines: Iterable[str]) -> str:
+    for line in response_lines:
+        match = CSFD_URL_RE.search(line)
+        if match:
+            return match.group(0)
+    raise ValueError("Could not find URL pointing to CSFD.cz")
