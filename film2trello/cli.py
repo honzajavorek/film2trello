@@ -68,10 +68,5 @@ def main(
         level=getattr(logging, log_level.upper()),
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
-    logger.info("Starting!")
-
-    board_url = f"https://trello.com/b/{board_id}"
-    logger.debug(f"Trello board: {board_url}")
-
-    logger.debug("Starting bot")
-    bot.run(users, board_url, telegram_token)
+    logger.info("Starting bot")
+    bot.run(users, board_id, telegram_token, trello_key, trello_token)

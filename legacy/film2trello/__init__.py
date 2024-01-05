@@ -20,7 +20,7 @@ import requests
 from PIL import Image
 
 from ...film2trello import csfd
-from . import trello
+from ...film2trello import trello
 
 
 USER_AGENT = (
@@ -126,12 +126,6 @@ def update_attachments(api, card_id, film):
                 f"/cards/{card_id}/attachments",
                 files=dict(file=create_thumbnail(response)),
             )
-
-
-def sanitize_exception(text):
-    return text.replace(TRELLO_KEY, "<TRELLO_KEY>").replace(
-        TRELLO_TOKEN, "<TRELLO_TOKEN>"
-    )
 
 
 def create_thumbnail(response):
