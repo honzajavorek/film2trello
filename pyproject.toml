@@ -24,16 +24,10 @@ pytest = "7.4.2"
 ruff = "0.1.11"
 
 [tool.pytest.ini_options]
-python_files = "test_*.py *_test.py test.py"
+python_files = "test_*.py"
 testpaths = "."
-norecursedirs = "node_modules legacy"
+norecursedirs = "legacy"
 addopts = "--ff"
-#filterwarnings = [
-#    "ignore:the imp module is deprecated:DeprecationWarning",
-#    "ignore:_unicode_safe_getattr is deprecated:DeprecationWarning",
-#    "ignore:invalid escape sequence:DeprecationWarning",
-#    "ignore:\"is not\" with a literal:SyntaxWarning",
-#]
 
 [tool.ruff]
 exclude = ["legacy"]
