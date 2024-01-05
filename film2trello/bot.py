@@ -2,7 +2,6 @@ import logging
 from functools import partial
 
 from telegram import Update
-from telegram.constants import MessageEntityType
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -25,9 +24,9 @@ async def start_command(
 ) -> None:
     user = update.effective_user
     if not user:
-        raise ValueError(f"No user available")
+        raise ValueError("No user available")
     if not update.message:
-        raise ValueError(f"No message available")
+        raise ValueError("No message available")
     await update.message.reply_html(
         f"Ahoj {user.mention_html()}! {help(board_url, dict(users)[user.id])}"
     )
@@ -41,9 +40,9 @@ async def help_command(
 ) -> None:
     user = update.effective_user
     if not user:
-        raise ValueError(f"No user available")
+        raise ValueError("No user available")
     if not update.message:
-        raise ValueError(f"No message available")
+        raise ValueError("No message available")
     await update.message.reply_html(help(board_url, dict(users)[user.id]))
 
 
@@ -55,9 +54,9 @@ async def save(
 ) -> None:
     user = update.effective_user
     if not user:
-        raise ValueError(f"No user available")
+        raise ValueError("No user available")
     if not update.message:
-        raise ValueError(f"No message available")
+        raise ValueError("No message available")
     try:
         state = await process_message(update.message.text or "")
     except Exception as e:

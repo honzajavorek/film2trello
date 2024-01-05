@@ -71,7 +71,7 @@ def parse_kvifftv_url(html_tree: html.HtmlElement) -> str | None:
 def parse_target_url(html_tree: html.HtmlElement) -> str:
     try:
         base_url = html_tree.cssselect("link[rel='canonical']")[0].get("href")
-    except:
+    except IndexError:
         base_url = html_tree.cssselect("meta[property='og:url']")[0].get("content")
     html_tree.make_links_absolute(base_url)
 

@@ -21,8 +21,7 @@ pillow = "10.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "7.4.2"
-black = "23.9.1"
-isort = "5.13.2"
+ruff = "0.1.11"
 
 [tool.pytest.ini_options]
 python_files = "test_*.py *_test.py test.py"
@@ -36,16 +35,13 @@ addopts = "--ff"
 #    "ignore:\"is not\" with a literal:SyntaxWarning",
 #]
 
-[tool.black]
-target-versions = ["py311"]
-include = "\\.py$"
-exclude = "legacy"
+[tool.ruff]
+exclude = ["legacy"]
+target-version = "py311"
 
-[tool.isort]
-profile = "black"
-lines_after_imports = 2
-combine_as_imports = true
-extend_skip = ["legacy"]
+[tool.ruff.lint.isort]
+combine-as-imports = true
+# lines-after-imports = 2
 
 [build-system]
 requires = ["poetry-core"]
