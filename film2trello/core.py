@@ -25,21 +25,15 @@ async def process_message(message_text: str) -> dict[str, Any]:
     if match := KVIFF_URL_RE.search(message_text):
         input_url = match.group(0)
         logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                input_url,
-                headers={"User-Agent": USER_AGENT},
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            csfd_url = None
-            for line in response.iter_lines():
-                match = CSFD_URL_RE.search(line)
-                if match:
-                    csfd_url = match.group(0)
-                    break
-            if not csfd_url:
-                raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
+        response = await httpx_get(input_url)
+        csfd_url = None
+        for line in response.iter_lines():
+            match = CSFD_URL_RE.search(line)
+            if match:
+                csfd_url = match.group(0)
+                break
+        if not csfd_url:
+            raise ValueError("KVIFF.TV page doesn't contain CSFD.cz URL")
     elif match := CSFD_URL_RE.search(message_text):
         logger.info("Detected CSFD.cz URL")
         input_url = csfd_url = match.group(0)
@@ -47,29 +41,17 @@ async def process_message(message_text: str) -> dict[str, Any]:
         raise ValueError("Could not find a valid film URL")
 
     logger.info(f"Scraping CSFD.cz URL: {csfd_url}")
-    async with httpx.AsyncClient() as client:
-        response = await client.get(
-            csfd_url,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-        )
-        response.raise_for_status()
-        csfd_url = str(response.url)
-        csfd_html_tree = html.fromstring(response.content)
+    response = await httpx_get(csfd_url)
+    csfd_url = str(response.url)
+    csfd_html_tree = html.fromstring(response.content)
 
     target_url = csfd.parse_target_url(csfd_html_tree)
     if target_url == csfd_url:
         target_html_tree = csfd_html_tree
     else:
         logger.info(f"Detected different target URL, scraping: {target_url}")
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                target_url,
-                headers={"User-Agent": USER_AGENT},
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            target_html_tree = html.fromstring(response.content)
+        response = await httpx_get(target_url)
+        target_html_tree = html.fromstring(response.content)
 
     parent_url = csfd.get_parent_url(csfd_url)
     if parent_url == csfd_url:
@@ -78,14 +60,8 @@ async def process_message(message_text: str) -> dict[str, Any]:
         parent_html_tree = target_html_tree
     else:
         logger.info(f"Detected different parent URL, scraping: {parent_url}")
-        async with httpx.AsyncClient() as client:
-            response = await client.get(
-                parent_url,
-                headers={"User-Agent": USER_AGENT},
-                follow_redirects=True,
-            )
-            response.raise_for_status()
-            parent_html_tree = html.fromstring(response.content)
+        response = await httpx_get(parent_url)
+        parent_html_tree = html.fromstring(response.content)
 
     return dict(
         input_url=input_url,
@@ -95,3 +71,14 @@ async def process_message(message_text: str) -> dict[str, Any]:
         durations=list(csfd.parse_durations(target_html_tree)),
         kvifftv_url=csfd.parse_kvifftv_url(parent_html_tree),
     )
+
+
+async def httpx_get(url: str) -> httpx.Response:
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            url,
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
+        )
+        response.raise_for_status()
+        return response
