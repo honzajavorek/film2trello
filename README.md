@@ -8,6 +8,7 @@ Turns film links to Trello cards 🍿
 - Port trello tests
 - Port readme
 - Remove legacy folder, also from pyproject.toml
+- In Trello board, deal with the tv shows somehow
 
 ## Setup
 
