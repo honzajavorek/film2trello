@@ -1,5 +1,4 @@
 import math
-from typing import Generator
 
 
 COLORS = {
@@ -82,7 +81,7 @@ def get_missing_attached_urls(
     return [url for url in urls if url not in existing_urls]
 
 
-def has_poster(attachments):
+def has_poster(attachments) -> bool:
     for attachment in attachments:
         if len(attachment["previews"]):
             return True

@@ -3,7 +3,7 @@ from io import BytesIO
 import logging
 from pprint import pformat
 import re
-from typing import Any, AsyncGenerator, Iterable, Literal, cast
+from typing import AsyncGenerator, Iterable, Literal, cast
 
 import httpx
 from lxml import html
