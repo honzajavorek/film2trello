@@ -78,7 +78,7 @@ def get_missing_attached_urls(
         for attachment in existing_attachments
         if attachment["name"] == attachment["url"]
     }
-    return [url for url in urls if url not in existing_urls]
+    return list(frozenset(urls) - existing_urls)
 
 
 def has_poster(attachments) -> bool:
