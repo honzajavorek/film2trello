@@ -95,12 +95,15 @@ async def save(
     trello_token: str,
 ) -> None:
     user = update.effective_user
-    if not user:
+    if user:
+        username = dict(users)[user.id]
+    else:
         raise ValueError("No user available")
     if not update.message:
         raise ValueError("No message available")
     try:
         state = await process_message(
+            username,
             update.message.text or "",
             board_id,
             trello_key,
@@ -112,7 +115,7 @@ async def save(
         await update.message.reply_html(
             f"Stala se nějaká chyba 😢\n\n"
             f"<pre>{e_text}</pre>\n\n"
-            f"{help(board_id, dict(users)[user.id])}"
+            f"{help(board_id, username)}"
         )
     else:
         await update.message.reply_html(f"<pre>{state!r}</pre>")
