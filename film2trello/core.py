@@ -3,7 +3,7 @@ from io import BytesIO
 import logging
 from pprint import pformat
 import re
-from typing import Any, Iterable, Literal, cast
+from typing import Any, AsyncGenerator, Iterable, Literal, cast
 
 import httpx
 from lxml import html
@@ -27,26 +27,26 @@ THUMBNAIL_SIZE = (500, 500)
 logger = logging.getLogger("film2trello.core")
 
 
-async def process_message(
+async def process(
     username: str,
     message_text: str,
     board_id: str,
     trello_key: str,
     trello_token: str,
-) -> dict[str, Any]:
+) -> AsyncGenerator[str, None]:  # -> dict[str, Any]:
     async with get_scraper() as scraper:
         if match := KVIFF_URL_RE.search(message_text):
             input_url = match.group(0)
-            logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
+            yield f"Detected KVIFF.TV URL, scraping: {input_url}"
             response = await scraper.get(input_url)
             csfd_url = find_csfd_url(response.iter_lines())
         elif match := CSFD_URL_RE.search(message_text):
-            logger.info("Detected CSFD.cz URL")
+            yield "Detected CSFD.cz URL"
             input_url = csfd_url = match.group(0)
         else:
             raise ValueError("Could not find a valid film URL")
 
-        logger.info(f"Scraping CSFD.cz URL: {csfd_url}")
+        yield f"Scraping CSFD.cz URL: {csfd_url}"
         response = await scraper.get(csfd_url)
         csfd_url = str(response.url)
         csfd_html_tree = html.fromstring(response.content)
@@ -55,7 +55,7 @@ async def process_message(
         if target_url == csfd_url:
             target_html_tree = csfd_html_tree
         else:
-            logger.info(f"Detected different target URL, scraping: {target_url}")
+            yield f"Detected different target URL, scraping: {target_url}"
             response = await scraper.get(target_url)
             target_html_tree = html.fromstring(response.content)
 
@@ -65,7 +65,7 @@ async def process_message(
         elif parent_url == target_url:
             parent_html_tree = target_html_tree
         else:
-            logger.info(f"Detected different parent URL, scraping: {parent_url}")
+            yield f"Detected different parent URL, scraping: {parent_url}"
             response = await scraper.get(parent_url)
             parent_html_tree = html.fromstring(response.content)
 
@@ -80,28 +80,28 @@ async def process_message(
     logger.debug(f"Scraped data:\n{pformat(data)}")
 
     async with get_trello_api(trello_key, trello_token) as trello_api:
-        logger.info(f"Checking if user '{username}' is allowed to the board")
+        yield f"Checking if user '{username}' is allowed to the board"
         members = (await trello_api.get(f"/boards/{board_id}/members")).json()
         if trello.not_in_members(username, members):
             raise ValueError(f"User '{username}' is not allowed to the board")
 
-        logger.info("Analyzing columns, assuming first is inbox and last is archive")
+        yield "Analyzing columns, assuming first is inbox and last is archive"
         lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
         inbox_list_id = trello.get_inbox_id(lists)
         archive_list_id = trello.get_archive_id(lists)
 
-        logger.info("Getting cards from both inbox and archive")
+        yield "Getting cards from both inbox and archive"
         inbox_cards = (await trello_api.get(f"/lists/{inbox_list_id}/cards")).json()
         archive_cards = (await trello_api.get(f"/lists/{archive_list_id}/cards")).json()
         cards = inbox_cards + archive_cards
 
-        logger.info("Checking if card already exists")
+        yield "Checking if card already exists"
         if card_id := trello.find_card_id(
             cards,
             cast(str, data["title"]),
             cast(str, data["csfd_url"]),
         ):
-            logger.info(f"Card already exists, updating: {card_id}")
+            yield f"Card already exists, updating: {card_id}"
             await trello_api.put(
                 f"/cards/{card_id}/",
                 json=dict(
@@ -110,7 +110,7 @@ async def process_message(
                 ),
             )
         else:
-            logger.info("Card does not exist, creating")
+            yield "Card does not exist, creating"
             card_id = (
                 await trello_api.post(
                     "/cards",
@@ -122,9 +122,9 @@ async def process_message(
                     ),
                 )
             ).json()["id"]
-            logger.info(f"Card created: {card_id}")
+            yield f"Card created: {card_id}"
 
-        logger.info("Updating members")
+        yield "Updating members"
         card_members = (await trello_api.get(f"/cards/{card_id}/members")).json()
         if trello.not_in_members(username, card_members):
             user_id = (await trello_api.get(f"/members/{username}")).json()["id"]
@@ -133,7 +133,7 @@ async def process_message(
                 json=dict(value=user_id),
             )
 
-        logger.info("Updating labels")
+        yield "Updating labels"
         card_labels = (await trello_api.get(f"/cards/{card_id}/labels")).json()
         labels = trello.prepare_duration_labels(cast(list[int], data["durations"]))
         if data.get("kvifftv_url"):
@@ -146,7 +146,7 @@ async def process_message(
                 if "label is already on the card" not in e.response.text:
                     raise e
 
-        logger.info("Updating attachments")
+        yield "Updating attachments"
         card_attachments = (
             await trello_api.get(f"/cards/{card_id}/attachments")
         ).json()
@@ -171,9 +171,11 @@ async def process_message(
                 )
 
     card_url = f"https://trello.com/c/{card_id}"
-    logger.info(f"Done processing: {card_url}")
+    yield f"Done processing: {card_url}"
     data["card_url"] = card_url
-    return data
+
+    logger.debug(f"Final data:\n{pformat(data)}")
+    yield f"Done! This is your card: {card_url}"
 
 
 def get_scraper() -> httpx.AsyncClient:

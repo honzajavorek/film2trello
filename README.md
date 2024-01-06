@@ -4,7 +4,6 @@ Turns film links to Trello cards 🍿
 
 ## TODO
 
-- Interface for user, progress bar, returned card
 - Port trello tests
 - Port readme
 - Remove legacy folder, also from pyproject.toml

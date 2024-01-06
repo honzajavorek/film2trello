@@ -10,7 +10,7 @@ from telegram.ext import (
     filters,
 )
 
-from film2trello.core import process_message
+from film2trello.core import process
 from film2trello.trello import get_board_url
 
 
@@ -101,14 +101,21 @@ async def save(
         raise ValueError("No user available")
     if not update.message:
         raise ValueError("No message available")
+
+    reply = await update.message.reply_html("Processing…")
     try:
-        state = await process_message(
+        async for message in process(
             username,
             update.message.text or "",
             board_id,
             trello_key,
             trello_token,
-        )
+        ):
+            await reply.edit_text(
+                message,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
     except Exception as e:
         logger.exception(e)
         e_text = sanitize(str(e), [trello_key, trello_token])
@@ -117,8 +124,6 @@ async def save(
             f"<pre>{e_text}</pre>\n\n"
             f"{help(board_id, username)}"
         )
-    else:
-        await update.message.reply_html(f"<pre>{state!r}</pre>")
 
 
 def help(board_id: str, username: str) -> str:
