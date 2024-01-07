@@ -77,10 +77,7 @@ async def process_inbox(board_id: str, trello_key: str, trello_token: str) -> No
             )
 
         cards = (await trello_api.get(f"/lists/{inbox_list_id}/cards")).json()
-        column = [{"card": card} for card in cards]
-
-        for item in column:
-            card = item["card"]
+        for card in cards:
             logger.info(
                 f"Processing card: {card['name']} {trello.get_card_url(card['id'])}"
             )
@@ -98,20 +95,11 @@ async def process_inbox(board_id: str, trello_key: str, trello_token: str) -> No
             else:
                 logger.info("Card description doesn't contain CSFD.cz URL")
 
-    # def sort_key(item):
-    #     film, card = item["film"], item["card"]
-
-    #     min_duration = min(film["durations"]) if (film and film["durations"]) else 1000
-    #     labels = [label["name"].lower() for label in card["labels"] or []]
-    #     is_available = 0 if (("kviff.tv" in labels) or ("stash" in labels)) else 1
-
-    #     return (min_duration, is_available, card["name"])
-
-    # for pos, item in enumerate(sorted(column, key=sort_key), start=1):
-    #     print(f"#{pos}", item["card"]["name"], file=sys.stderr, flush=True)
-    #     api.put(f"/cards/{item['card']['id']}/", data=dict(pos=pos))
-    #     time.sleep(0.5)
-    pass
+    logger.info("Sorting cards")
+    async with get_trello_api(trello_key, trello_token) as trello_api:
+        for position, card in enumerate(sorted(cards, key=sort_inbox_key), start=1):
+            logger.info(f"#{position}: {card['name']}")
+            await trello_api.put(f"/cards/{card['id']}/", json=dict(pos=position))
 
 
 async def process_url(
@@ -291,3 +279,13 @@ async def create_thumbnail(
     image.save(out_file, "JPEG")
     out_file.seek(0)
     return ("poster.jpg", out_file, "image/jpeg")
+
+
+def sort_inbox_key(card: dict) -> tuple[int, int, str]:
+    return (1, 1, card["name"])
+    # TODO: implement sorting
+    # min_duration = min(film["durations"]) if (film and film["durations"]) else 1000
+    # labels = [label["name"].lower() for label in card["labels"] or []]
+    # is_available = 0 if (("kviff.tv" in labels) or ("stash" in labels)) else 1
+
+    # return (min_duration, is_available, card["name"])
