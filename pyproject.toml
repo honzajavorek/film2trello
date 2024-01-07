@@ -26,11 +26,9 @@ ruff = "0.1.11"
 [tool.pytest.ini_options]
 python_files = "test_*.py"
 testpaths = "."
-norecursedirs = "legacy"
 addopts = "--ff"
 
 [tool.ruff]
-exclude = ["legacy"]
 target-version = "py311"
 
 [tool.ruff.lint.isort]

@@ -10,7 +10,7 @@ from telegram.ext import (
     filters,
 )
 
-from film2trello.core import process
+from film2trello.core import process_message
 from film2trello.trello import get_board_url
 
 
@@ -53,6 +53,8 @@ def run(
             ),
         ]
     )
+
+    logger.info("Starting bot")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
@@ -104,7 +106,7 @@ async def save(
 
     reply = await update.message.reply_html("Processing…")
     try:
-        async for message in process(
+        async for message in process_message(
             username,
             update.message.text or "",
             board_id,
