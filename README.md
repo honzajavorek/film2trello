@@ -11,7 +11,7 @@ Assumed Trello board structure:
 
 ## TODO
 
-- Port script
+- Implement sorting
 - Fix https://trello.com/c/nKWsYvUv/543-maestro-bernstein-pracovn%C3%AD-n%C3%A1zev-2023
 - In Trello board, deal with the tv shows somehow
 
