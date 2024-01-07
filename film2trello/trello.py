@@ -15,6 +15,10 @@ COLORS = {
 KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
 
 
+def get_card_url(card_id: str) -> str:
+    return f"https://trello.com/c/{card_id}"
+
+
 def get_board_url(board_id: str) -> str:
     return f"https://trello.com/b/{board_id}"
 

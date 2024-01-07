@@ -113,6 +113,7 @@ async def save(
             trello_key,
             trello_token,
         ):
+            logger.info(f"Status: {message}")
             await reply.edit_text(
                 message,
                 parse_mode="HTML",

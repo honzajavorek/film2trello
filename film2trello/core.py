@@ -1,9 +1,9 @@
 import asyncio
+from datetime import date, timedelta
 from io import BytesIO
 import logging
-from pprint import pformat
 import re
-from typing import AsyncGenerator, Iterable, Literal, cast
+from typing import AsyncGenerator, Iterable, Literal
 
 import httpx
 from lxml import html
@@ -33,19 +33,96 @@ async def process_message(
     board_id: str,
     trello_key: str,
     trello_token: str,
-) -> AsyncGenerator[str, None]:  # -> dict[str, Any]:
-    async with get_scraper() as scraper:
-        if match := KVIFF_URL_RE.search(message_text):
-            input_url = match.group(0)
-            yield f"Detected KVIFF.TV URL, scraping: {input_url}"
+) -> AsyncGenerator[str, None]:
+    if match := KVIFF_URL_RE.search(message_text):
+        input_url = match.group(0)
+        yield f"Detected KVIFF.TV URL, scraping: {input_url}"
+        async with get_scraper() as scraper:
             response = await scraper.get(input_url)
-            csfd_url = find_csfd_url(response.iter_lines())
-        elif match := CSFD_URL_RE.search(message_text):
-            yield "Detected CSFD.cz URL"
-            input_url = csfd_url = match.group(0)
-        else:
-            raise ValueError("Could not find a valid film URL")
+        csfd_url = find_csfd_url(response.iter_lines())
+    elif match := CSFD_URL_RE.search(message_text):
+        yield "Detected CSFD.cz URL"
+        csfd_url = match.group(0)
+    else:
+        raise ValueError("Could not find a valid film URL")
+    async for message in process_url(
+        csfd_url,
+        board_id,
+        trello_key,
+        trello_token,
+        username=username,
+    ):
+        yield message
 
+
+async def process_inbox(board_id: str, trello_key: str, trello_token: str) -> None:
+    async with get_trello_api(trello_key, trello_token) as trello_api:
+        lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
+        inbox_list_id = trello.get_inbox_id(lists)
+        archive_list_id = trello.get_archive_id(lists)
+
+        years_ago = date.today() - timedelta(days=365 * 2)
+        years_old_cards = (
+            await trello_api.get(f"/lists/{inbox_list_id}/cards?before={years_ago}")
+        ).json()
+        logger.info(f"Found {len(years_old_cards)} years old cards")
+
+        for card in years_old_cards:
+            logger.info(
+                f"Archiving card: {card['name']} {trello.get_card_url(card['id'])}"
+            )
+            await trello_api.put(
+                f"/cards/{card['id']}/",
+                json=dict(idList=archive_list_id),
+            )
+
+        cards = (await trello_api.get(f"/lists/{inbox_list_id}/cards")).json()
+        column = [{"card": card} for card in cards]
+
+        for item in column:
+            card = item["card"]
+            logger.info(
+                f"Processing card: {card['name']} {trello.get_card_url(card['id'])}"
+            )
+            if match := CSFD_URL_RE.search(card["desc"]):
+                csfd_url = match.group(0)
+                logger.info(f"CSFD.cz URL: {csfd_url}")
+                async for message in process_url(
+                    csfd_url,
+                    board_id,
+                    trello_key,
+                    trello_token,
+                    card_id=card["id"],
+                ):
+                    logger.info(f"Status: {message}")
+            else:
+                logger.info("Card description doesn't contain CSFD.cz URL")
+
+    # def sort_key(item):
+    #     film, card = item["film"], item["card"]
+
+    #     min_duration = min(film["durations"]) if (film and film["durations"]) else 1000
+    #     labels = [label["name"].lower() for label in card["labels"] or []]
+    #     is_available = 0 if (("kviff.tv" in labels) or ("stash" in labels)) else 1
+
+    #     return (min_duration, is_available, card["name"])
+
+    # for pos, item in enumerate(sorted(column, key=sort_key), start=1):
+    #     print(f"#{pos}", item["card"]["name"], file=sys.stderr, flush=True)
+    #     api.put(f"/cards/{item['card']['id']}/", data=dict(pos=pos))
+    #     time.sleep(0.5)
+    pass
+
+
+async def process_url(
+    csfd_url: str,
+    board_id: str,
+    trello_key: str,
+    trello_token: str,
+    card_id: str | None = None,
+    username: str | None = None,
+) -> AsyncGenerator[str, None]:
+    async with get_scraper() as scraper:
         yield f"Scraping CSFD.cz URL: {csfd_url}"
         response = await scraper.get(csfd_url)
         csfd_url = str(response.url)
@@ -69,74 +146,70 @@ async def process_message(
             response = await scraper.get(parent_url)
             parent_html_tree = html.fromstring(response.content)
 
-    data = dict(
-        input_url=input_url,
-        csfd_url=target_url,
-        title=csfd.parse_title(target_html_tree),
-        poster_url=csfd.parse_poster_url(target_html_tree),
-        durations=list(csfd.parse_durations(target_html_tree)),
-        kvifftv_url=csfd.parse_kvifftv_url(parent_html_tree),
-    )
-    logger.debug(f"Scraped data:\n{pformat(data)}")
+    title = csfd.parse_title(target_html_tree)
+    logger.debug(f"Title: {title}")
+    poster_url = csfd.parse_poster_url(target_html_tree)
+    logger.debug(f"Poster URL: {poster_url}")
+    durations = list(csfd.parse_durations(target_html_tree))
+    logger.debug(f"Durations: {durations}")
+    kvifftv_url = csfd.parse_kvifftv_url(parent_html_tree)
+    logger.debug(f"KVIFF.TV URL: {kvifftv_url}")
 
     async with get_trello_api(trello_key, trello_token) as trello_api:
-        yield f"Checking if user '{username}' is allowed to the board"
-        members = (await trello_api.get(f"/boards/{board_id}/members")).json()
-        if trello.not_in_members(username, members):
-            raise ValueError(f"User '{username}' is not allowed to the board")
+        if username is not None:
+            yield f"Checking if user '{username}' is allowed to the board"
+            members = (await trello_api.get(f"/boards/{board_id}/members")).json()
+            if trello.not_in_members(username, members):
+                raise ValueError(f"User '{username}' is not allowed to the board")
 
-        yield "Analyzing columns, assuming first is inbox and last is archive"
-        lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
-        inbox_list_id = trello.get_inbox_id(lists)
-        archive_list_id = trello.get_archive_id(lists)
-
-        yield "Getting cards from both inbox and archive"
-        inbox_cards = (await trello_api.get(f"/lists/{inbox_list_id}/cards")).json()
-        archive_cards = (await trello_api.get(f"/lists/{archive_list_id}/cards")).json()
-        cards = inbox_cards + archive_cards
-
-        yield "Checking if card already exists"
-        if card_id := trello.find_card_id(
-            cards,
-            cast(str, data["title"]),
-            cast(str, data["csfd_url"]),
-        ):
-            yield f"Card already exists, updating: {card_id}"
-            await trello_api.put(
-                f"/cards/{card_id}/",
-                json=dict(
-                    idList=inbox_list_id,
-                    pos="top",
-                ),
+        if card_id:
+            card_data = dict(
+                name=title,
+                desc=csfd_url,
             )
         else:
-            yield "Card does not exist, creating"
-            card_id = (
-                await trello_api.post(
-                    "/cards",
-                    json=dict(
-                        name=data["title"],
-                        desc=data["csfd_url"],
-                        pos="top",
-                        idList=inbox_list_id,
-                    ),
-                )
-            ).json()["id"]
-            yield f"Card created: {card_id}"
+            yield "Analyzing columns, assuming first is inbox and last is archive"
+            lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
+            inbox_list_id = trello.get_inbox_id(lists)
+            archive_list_id = trello.get_archive_id(lists)
 
-        yield "Updating members"
-        card_members = (await trello_api.get(f"/cards/{card_id}/members")).json()
-        if trello.not_in_members(username, card_members):
-            user_id = (await trello_api.get(f"/members/{username}")).json()["id"]
-            await trello_api.post(
-                f"/cards/{card_id}/members",
-                json=dict(value=user_id),
+            yield "Checking if card already exists"
+            inbox_cards = (await trello_api.get(f"/lists/{inbox_list_id}/cards")).json()
+            archive_cards = (
+                await trello_api.get(f"/lists/{archive_list_id}/cards")
+            ).json()
+            cards = inbox_cards + archive_cards
+            card_id = trello.find_card_id(cards, title, csfd_url)
+            card_data = dict(
+                name=title,
+                desc=csfd_url,
+                pos="top",
+                idList=inbox_list_id,
             )
+
+        if card_id:
+            yield f"Card already exists, updating: {trello.get_card_url(card_id)}"
+            await trello_api.put(f"/cards/{card_id}/", json=card_data)
+        else:
+            yield "Card does not exist, creating"
+            card_id = (await trello_api.post("/cards", json=card_data)).json()["id"]
+            assert card_id
+            yield f"Card created: {trello.get_card_url(card_id)}"
+
+        if username is not None:
+            yield "Updating members"
+            card_members = (await trello_api.get(f"/cards/{card_id}/members")).json()
+            if trello.not_in_members(username, card_members):
+                user_id = (await trello_api.get(f"/members/{username}")).json()["id"]
+                await trello_api.post(
+                    f"/cards/{card_id}/members",
+                    json=dict(value=user_id),
+                )
 
         yield "Updating labels"
         card_labels = (await trello_api.get(f"/cards/{card_id}/labels")).json()
-        labels = trello.prepare_duration_labels(cast(list[int], data["durations"]))
-        if data.get("kvifftv_url"):
+        labels = trello.prepare_duration_labels(durations)
+        if kvifftv_url:
             labels.append(trello.KVIFFTV_LABEL)
         labels = trello.get_missing_labels(card_labels, labels)
         for label in labels:
@@ -150,9 +223,9 @@ async def process_message(
         card_attachments = (
             await trello_api.get(f"/cards/{card_id}/attachments")
         ).json()
-        urls = [cast(str, data["csfd_url"])]
-        if data.get("kvifftv_url"):
-            urls.append(cast(str, data["kvifftv_url"]))
+        urls = [csfd_url]
+        if kvifftv_url:
+            urls.append(kvifftv_url)
         urls = trello.get_missing_attached_urls(card_attachments, urls)
         await asyncio.gather(
             *(
@@ -160,73 +233,15 @@ async def process_message(
                 for url in urls
             )
         )
-        if not trello.has_poster(card_attachments) and data["poster_url"]:
-            async with get_scraper().stream(
-                "GET", cast(str, data["poster_url"])
-            ) as response:
+        if not trello.has_poster(card_attachments) and poster_url:
+            async with get_scraper().stream("GET", poster_url) as response:
                 file = await create_thumbnail(response)
                 await trello_api.post(
                     f"/cards/{card_id}/attachments",
                     files=dict(file=file),
                 )
 
-    card_url = f"https://trello.com/c/{card_id}"
-    yield f"Done processing: {card_url}"
-    data["card_url"] = card_url
-
-    logger.debug(f"Final data:\n{pformat(data)}")
-    yield f"Done! This is your card: {card_url}"
-
-
-async def process_inbox(board_id: str, trello_key: str, trello_token: str) -> None:
-    # api = trello.create_session(TRELLO_TOKEN, TRELLO_KEY)
-    # lists = api.get(f"/boards/{TRELLO_BOARD}/lists")
-
-    # inbox_list_id = trello.get_inbox_id(lists)
-    # archive_list_id = trello.get_archive_id(lists)
-
-    # years_ago = date.today() - timedelta(days=365 * 2)
-    # years_old_cards = api.get(f"/lists/{inbox_list_id}/cards?before={years_ago}")
-
-    # print(f"Found {len(years_old_cards)} years old cards", file=sys.stderr, flush=True)
-    # for card in years_old_cards:
-    #     print(card["name"], file=sys.stderr, flush=True)
-    #     api.put(f"/cards/{card['id']}/", data=dict(idList=archive_list_id))
-
-    # cards = api.get(f"/lists/{inbox_list_id}/cards")
-    # column = [{"card": card} for card in cards]
-
-    # for item in column:
-    #     card = item["card"]
-    #     print(card["name"], file=sys.stderr, flush=True)
-    #     try:
-    #         film_url = core.normalize_url(card["desc"])
-    #         print(film_url, file=sys.stderr, flush=True)
-    #     except core.InvalidURLError as e:
-    #         print(
-    #             "Card description doesn't contain CSFD.cz URL", file=sys.stderr, flush=True
-    #         )
-    #         item["film"] = None
-    #     else:
-    #         film = get_film(film_url)
-    #         update_labels(api, card["id"], film)
-    #         update_attachments(api, card["id"], film)
-    #         item["film"] = film
-
-    # def sort_key(item):
-    #     film, card = item["film"], item["card"]
-
-    #     min_duration = min(film["durations"]) if (film and film["durations"]) else 1000
-    #     labels = [label["name"].lower() for label in card["labels"] or []]
-    #     is_available = 0 if (("kviff.tv" in labels) or ("stash" in labels)) else 1
-
-    #     return (min_duration, is_available, card["name"])
-
-    # for pos, item in enumerate(sorted(column, key=sort_key), start=1):
-    #     print(f"#{pos}", item["card"]["name"], file=sys.stderr, flush=True)
-    #     api.put(f"/cards/{item['card']['id']}/", data=dict(pos=pos))
-    #     time.sleep(0.5)
-    pass
+    yield f"Done! This is your card: {trello.get_card_url(card_id)}"
 
 
 def get_scraper() -> httpx.AsyncClient:
@@ -234,7 +249,7 @@ def get_scraper() -> httpx.AsyncClient:
         headers={"User-Agent": USER_AGENT},
         follow_redirects=True,
         http2=True,
-        event_hooks={"response": [raise_on_4xx_5xx]},
+        event_hooks={"response": [raise_on_error]},
     )
 
 
@@ -246,7 +261,7 @@ def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
             "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)"
         },
         http2=True,
-        event_hooks={"response": [raise_on_4xx_5xx]},
+        event_hooks={"response": [raise_on_error]},
     )
 
 
@@ -258,8 +273,9 @@ def find_csfd_url(response_lines: Iterable[str]) -> str:
     raise ValueError("Could not find URL pointing to CSFD.cz")
 
 
-async def raise_on_4xx_5xx(response: httpx.Response) -> None:
-    response.raise_for_status()
+async def raise_on_error(response: httpx.Response) -> None:
+    if response.is_client_error or response.is_server_error:
+        response.raise_for_status()
 
 
 async def create_thumbnail(
