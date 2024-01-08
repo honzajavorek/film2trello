@@ -11,7 +11,8 @@ from telegram.ext import (
 )
 
 from film2trello.core import process_message
-from film2trello.trello import get_board_url
+from film2trello.http import get_scraper
+from film2trello.trello import get_board_url, get_trello_api
 
 
 logger = logging.getLogger("film2trello.bot")
@@ -103,15 +104,17 @@ async def save(
         raise ValueError("No user available")
     if not update.message:
         raise ValueError("No message available")
-
     reply = await update.message.reply_html("Processing…")
+
+    scraper = get_scraper()
+    trello_api = get_trello_api(trello_key, trello_token)
     try:
         async for message in process_message(
+            scraper,
+            trello_api,
             username,
             update.message.text or "",
             board_id,
-            trello_key,
-            trello_token,
         ):
             logger.info(f"Status: {message}")
             await reply.edit_text(
@@ -127,6 +130,9 @@ async def save(
             f"<pre>{e_text}</pre>\n\n"
             f"{help(board_id, username)}"
         )
+    finally:
+        await scraper.aclose()
+        await trello_api.aclose()
 
 
 def help(board_id: str, username: str) -> str:

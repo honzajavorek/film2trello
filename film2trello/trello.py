@@ -1,8 +1,9 @@
 import asyncio
+from functools import wraps
 from io import BytesIO
 import itertools
 import math
-from typing import Literal
+from typing import AsyncGenerator, Callable, Literal
 
 from PIL import Image
 import httpx
@@ -36,6 +37,18 @@ def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
         http2=True,
         event_hooks={"response": [raise_on_error]},
     )
+
+
+# def with_trello_api(fn: Callable[..., AsyncGenerator]) -> Callable[..., AsyncGenerator]:
+#     @wraps(fn)
+#     async def wrapper(*args, **kwargs) -> AsyncGenerator:
+#         key = kwargs.pop("trello_key")
+#         token = kwargs.pop("trello_token")
+#         async with get_trello_api(key, token) as client:
+#             async for item in fn(client, *args, **kwargs):
+#                 yield item
+
+#     return wrapper
 
 
 async def check_username(
