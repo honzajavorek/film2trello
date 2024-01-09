@@ -4,7 +4,7 @@ from functools import wraps
 from io import BytesIO
 import itertools
 import math
-from typing import AsyncGenerator, Callable, Coroutine, Literal
+from typing import Callable, Coroutine, Literal
 
 from PIL import Image
 import httpx

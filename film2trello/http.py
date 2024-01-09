@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import Any, AsyncGenerator, Callable, Coroutine, TypeVar, TypedDict, cast
+from typing import Callable, Coroutine, TypedDict
 import httpx
 from lxml import html
 

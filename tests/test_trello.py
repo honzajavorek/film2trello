@@ -176,9 +176,9 @@ def test_has_poster():
         },
     ]
 
-    assert trello.has_poster(existing_attachments) == True
-    assert trello.has_poster(existing_attachments[:1]) == False
-    assert trello.has_poster(existing_attachments[1:]) == True
+    assert trello.has_poster(existing_attachments) is True
+    assert trello.has_poster(existing_attachments[:1]) is False
+    assert trello.has_poster(existing_attachments[1:]) is True
 
 
 @pytest.mark.parametrize(

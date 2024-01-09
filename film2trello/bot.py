@@ -12,8 +12,8 @@ from telegram.ext import (
 )
 
 from film2trello.core import process_message
-from film2trello.http import get_scraper, with_scraper
-from film2trello.trello import get_board_url, get_trello_api, with_trello_api
+from film2trello.http import with_scraper
+from film2trello.trello import get_board_url, with_trello_api
 
 
 logger = logging.getLogger("film2trello.bot")
