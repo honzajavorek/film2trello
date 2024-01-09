@@ -11,8 +11,6 @@ Assumed Trello board structure:
 
 ## TODO
 
-- Implement sorting
-- Put ruff check and format --check to CI
 - Deployment
 - In Trello board, deal with the tv shows somehow
 

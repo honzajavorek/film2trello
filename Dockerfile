@@ -6,4 +6,4 @@ WORKDIR /app
 COPY pyproject.toml poetry.lock /app/
 COPY . /app
 RUN poetry install --no-interaction --no-ansi --no-root --no-dev
-CMD poetry run film2trello
+CMD poetry run film2trello --debug bot
