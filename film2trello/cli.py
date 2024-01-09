@@ -95,4 +95,10 @@ def inbox(
     trello_key: str,
     trello_token: str,
 ) -> None:
-    asyncio.run(process_inbox(board_id, trello_key, trello_token))
+    asyncio.run(
+        process_inbox(
+            board_id,
+            trello_key=trello_key,
+            trello_token=trello_token,
+        )
+    )

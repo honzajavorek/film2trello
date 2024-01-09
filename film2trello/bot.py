@@ -1,5 +1,6 @@
 import logging
 from functools import partial
+import httpx
 
 from telegram import Update
 from telegram.ext import (
@@ -11,8 +12,8 @@ from telegram.ext import (
 )
 
 from film2trello.core import process_message
-from film2trello.http import get_scraper
-from film2trello.trello import get_board_url, get_trello_api
+from film2trello.http import get_scraper, with_scraper
+from film2trello.trello import get_board_url, get_trello_api, with_trello_api
 
 
 logger = logging.getLogger("film2trello.bot")
@@ -50,6 +51,7 @@ def run(
                     board_id=board_id,
                     trello_key=trello_key,
                     trello_token=trello_token,
+                    secrets=[telegram_token, trello_key, trello_token],
                 ),
             ),
         ]
@@ -89,13 +91,16 @@ async def help_command(
     await update.message.reply_html(help(board_id, dict(users)[user.id]))
 
 
+@with_trello_api
+@with_scraper
 async def save(
+    scraper: httpx.AsyncClient,
+    trello_api: httpx.AsyncClient,
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     users: list[tuple[int, str]],
     board_id: str,
-    trello_key: str,
-    trello_token: str,
+    secrets: list[str] | None = None,
 ) -> None:
     user = update.effective_user
     if user:
@@ -104,10 +109,8 @@ async def save(
         raise ValueError("No user available")
     if not update.message:
         raise ValueError("No message available")
-    reply = await update.message.reply_html("Processing…")
 
-    scraper = get_scraper()
-    trello_api = get_trello_api(trello_key, trello_token)
+    reply = await update.message.reply_html("Processing…")
     try:
         async for message in process_message(
             scraper,
@@ -122,17 +125,16 @@ async def save(
                 parse_mode="HTML",
                 disable_web_page_preview=True,
             )
-    except Exception as e:
-        logger.exception(e)
-        e_text = sanitize(str(e), [trello_key, trello_token])
+    except Exception as exc:
+        logger.exception(exc)
+        exc_text = str(exc)
+        if secrets:
+            exc_text = sanitize(exc_text, secrets)
         await update.message.reply_html(
             f"Stala se nějaká chyba 😢\n\n"
-            f"<pre>{e_text}</pre>\n\n"
+            f"<pre>{exc_text}</pre>\n\n"
             f"{help(board_id, username)}"
         )
-    finally:
-        await scraper.aclose()
-        await trello_api.aclose()
 
 
 def help(board_id: str, username: str) -> str:

@@ -13,8 +13,7 @@ def csfd_html():
 
 
 def test_parse_title(csfd_html):
-    title = "Poslední skaut / The Last Boy Scout (1991)"
-    assert csfd.parse_title(csfd_html) == title
+    assert csfd.parse_title(csfd_html) == "Poslední skaut / The Last Boy Scout (1991)"
 
 
 def test_parse_title_same_name():
@@ -31,12 +30,25 @@ def test_parse_title_no_other_name():
     assert csfd.parse_title(csfd_html) == "The Beginning of Life (2016)"
 
 
+def test_parse_wip_name():
+    path = Path(__file__).parent / "csfd_wip_name.html"
+    csfd_html = html.fromstring(path.read_text())
+
+    assert csfd.parse_title(csfd_html) == "Hranice lásky (2022)"
+
+
+def test_parse_festival_name():
+    path = Path(__file__).parent / "csfd_festival_name.html"
+    csfd_html = html.fromstring(path.read_text())
+
+    assert csfd.parse_title(csfd_html) == "Drive My Car (2021)"
+
+
 def test_parse_poster_url(csfd_html):
-    url = (
+    assert csfd.parse_poster_url(csfd_html) == (
         "https://image.pmgstatic.com/cache/resized/w420/"
         "files/images/film/posters/159/527/159527985_335bf7.jpg"
     )
-    assert csfd.parse_poster_url(csfd_html) == url
 
 
 def test_parse_poster_url_no_image():
@@ -76,8 +88,10 @@ def test_parse_kvifftv_url():
     path = Path(__file__).parent / "csfd_kvifftv.html"
     csfd_html = html.fromstring(path.read_text())
 
-    kvifftv_url = "https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno"
-    assert csfd.parse_kvifftv_url(csfd_html) == kvifftv_url
+    assert (
+        csfd.parse_kvifftv_url(csfd_html)
+        == "https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno"
+    )
 
 
 def test_parse_kvifftv_url_missing(csfd_html):

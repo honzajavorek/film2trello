@@ -24,14 +24,13 @@ async def raise_on_error(response: httpx.Response) -> None:
         response.raise_for_status()
 
 
-# def with_scraper(fn: Callable[..., AsyncGenerator]) -> Callable[..., AsyncGenerator]:
-#     @wraps(fn)
-#     async def wrapper(*args, **kwargs) -> AsyncGenerator:
-#         async with get_scraper() as client:
-#             async for item in fn(client, *args, **kwargs):
-#                 yield item
+def with_scraper(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+    @wraps(fn)
+    async def wrapper(*args, **kwargs) -> Coroutine:
+        async with get_scraper() as client:
+            return await fn(client, *args, **kwargs)
 
-#     return wrapper
+    return wrapper
 
 
 class Page(TypedDict):

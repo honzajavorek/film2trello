@@ -1,9 +1,10 @@
 import asyncio
+from datetime import date
 from functools import wraps
 from io import BytesIO
 import itertools
 import math
-from typing import AsyncGenerator, Callable, Literal
+from typing import AsyncGenerator, Callable, Coroutine, Literal
 
 from PIL import Image
 import httpx
@@ -26,6 +27,8 @@ THUMBNAIL_SIZE = (500, 500)
 
 KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
 
+AVAILABILITY_LABELS = ["KVIFF.TV", "STASH"]
+
 
 def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(
@@ -39,16 +42,15 @@ def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
     )
 
 
-# def with_trello_api(fn: Callable[..., AsyncGenerator]) -> Callable[..., AsyncGenerator]:
-#     @wraps(fn)
-#     async def wrapper(*args, **kwargs) -> AsyncGenerator:
-#         key = kwargs.pop("trello_key")
-#         token = kwargs.pop("trello_token")
-#         async with get_trello_api(key, token) as client:
-#             async for item in fn(client, *args, **kwargs):
-#                 yield item
+def with_trello_api(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+    @wraps(fn)
+    async def wrapper(*args, **kwargs) -> Coroutine:
+        key = kwargs.pop("trello_key")
+        token = kwargs.pop("trello_token")
+        async with get_trello_api(key, token) as client:
+            return await fn(client, *args, **kwargs)
 
-#     return wrapper
+    return wrapper
 
 
 async def check_username(
@@ -69,16 +71,12 @@ async def get_working_lists_ids(
     return [get_inbox_id(lists), get_archive_id(lists)]
 
 
-async def fetch_cards(
+async def get_cards(
     trello_api: httpx.AsyncClient,
-    board_id: str,
     lists_ids: list[str],
 ) -> list[dict]:
     responses = await asyncio.gather(
-        *(
-            trello_api.get(f"/boards/{board_id}/lists/{list_id}/cards")
-            for list_id in lists_ids
-        )
+        *(trello_api.get(f"/lists/{list_id}/cards") for list_id in lists_ids)
     )
     return list(
         itertools.chain.from_iterable(response.json() for response in responses)
@@ -155,6 +153,39 @@ async def update_card_attachments(
             f"/cards/{card_id}/attachments",
             files=dict(file=create_thumbnail(response.content)),
         )
+
+
+async def update_card_position(
+    trello_api: httpx.AsyncClient,
+    card_id: str,
+    position: int,
+) -> None:
+    await trello_api.put(f"/cards/{card_id}/", json=dict(pos=position))
+
+
+async def get_old_cards(
+    trello_api: httpx.AsyncClient,
+    inbox_list_id: str,
+    before: date,
+) -> list[dict]:
+    return (
+        await trello_api.get(
+            f"/lists/{inbox_list_id}/cards", params=dict(before=str(before))
+        )
+    ).json()
+
+
+async def archive_cards(
+    trello_api: httpx.AsyncClient,
+    archive_list_id: str,
+    cards: list[dict],
+) -> None:
+    await asyncio.gather(
+        *(
+            trello_api.put(f"/cards/{card['id']}/", json=dict(idList=archive_list_id))
+            for card in cards
+        )
+    )
 
 
 def get_card_url(card_id: str) -> str:

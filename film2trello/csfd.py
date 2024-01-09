@@ -6,6 +6,8 @@ from lxml import html
 
 TITLE_YEAR_RE = re.compile(r"\((\d{4})\)\s*$")
 
+TITLE_SPECIAL_NAME_RE = re.compile(r"\s+\([^\)]+\snázev\)$")
+
 PARENT_URL_RE = re.compile(
     r"""
         (?P<prefix>.+/film)
@@ -49,8 +51,7 @@ def parse_title(csfd_html: html.HtmlElement) -> str:
         return f"{title} ({year})"
     else:
         first_lang_text = re.sub(r"\s*\(více\)", "", first_lang.text_content().strip())
-
-        if title == first_lang_text:
+        if title == first_lang_text or TITLE_SPECIAL_NAME_RE.search(first_lang_text):
             return f"{title} ({year})"
         return f"{title} / {first_lang_text} ({year})"
 
