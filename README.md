@@ -1,50 +1,53 @@
 # film2trello
 
-Simple app which allows me and my wife to use [Trello](http://trello.com/) as our "To Watch" list for films. Currently works with URLs to films at [CSFD.cz](http://csfd.cz) and [KVIFF.TV](https://kviff.tv).
+Personal Telegram bot which turns [CSFD.cz](http://csfd.cz) and [KVIFF.TV](https://kviff.tv) film links to [Trello](http://trello.com/) cards 🍿
+Allows me and my wife to use Trello as our "To Watch" list for films.
+Assumed Trello board structure:
 
-![screenshot](screenshot.png)
+-   First column is an inbox, a "To Watch" list.
+-   Any number of "Seen" columns follows, e.g. "Seen in 2024", "Seen in 2023"…
+-   Last column is "Archive".
+    If a card is in the inbox for several years, it gets moved out of the way to this archive.
 
-## How does it work?
+## TODO
 
-When you navigate to the main page of the app, it allows you to submit an URL of a film. When submitted, it downloads basic information about the film and creates a card in the first column (assumed inbox) of your "To Watch" Trello board.
+- Deployment
+- In Trello board, deal with the tv shows somehow
 
-Your Trello username is remembered using cookies. The Trello board is hardcoded in the settings of a particular instance of the app.
+## Setup
 
-### Bookmarklet
+-   Install by Poetry
+-   Set `TELEGRAM_TOKEN` environment variable to the token BotFather gives you
+-   Set `TRELLO_KEY` environment variable to something you get at [Trello Power-Ups Admin](https://trello.com/power-ups/admin/)
+-   Set `TRELLO_TOKEN` environment variable to something you get at [Trello Power-Ups Admin](https://trello.com/power-ups/admin/), alternatively make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
+-   Verify which Trello board you want to use, because the default value for the board ID is set to ours.
+    Override it with `--board`.
+    Get the ID of your board from its URL, e.g. if the URL of the board is `https://trello.com/b/mF7A3n3J/filmy-test`, then `mF7A3n3J` is the ID.
+-   Verify which Telegram users you want to allow and how they map to your Trello users, because the default values are set to us.
+    Override it with `--user`, e.g. `--user=119318534:honzajavorek`.
+    You can use the option multiple times to allow more users.
+    I don't remember how I've got the Telegram account IDs, ask the internet.
+-   Run `film2trello bot`
+-   Stop by Ctrl+C
 
-After submitting your first film, the page offers you a [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet). You can drag it into your browser's interface and make it a button. Every time you're on a page about a film, e.g. [csfd.cz/film/8365-vyvoleny/](http://www.csfd.cz/film/8365-vyvoleny/), and you want to save it to your "To Watch" Trello board as a card, just click on the button.
+## Development
 
+-   Use Poetry to manage dependencies
+-   Run `pytest` to test
+-   Run `ruff check` to lint
+-   Run `ruff format` to format code
 
-## Installation
-
-### Preparation
-
-Set the following environment variables:
-
-- **`TRELLO_KEY`** - Get it at the [Trello app key page](https://trello.com/app-key).
-- **`TRELLO_TOKEN`** - Get it at the [Trello app key page](https://trello.com/app-key). Make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
-- **`TRELLO_BOARD`** - An ID of the Trello board you want to work with. Get it from its URL, e.g. if the URL of the board is `https://trello.com/b/mF7A3n3J/filmy-test`, then `mF7A3n3J` is the ID.
-- **`FLASK_SECRET_KEY`** - Something random (see [docs](https://flask.palletsprojects.com/en/1.1.x/config/#SECRET_KEY)).
-
-### Development
-
-Create a virtual environment and install dependencies from the `requirements.txt` file. Run `pytest` to execute tests. To run the app locally:
-
-```
-$ FLASK_DEBUG=1 FLASK_APP=film2trello flask run --port=3000 --reload
-```
-
-### Deployment
+## Deployment
 
 The app runs on [Fly.io](https://fly.io/). Install their `flyctl`. Then you can do things like `flyctl launch --name=film2trello` or `flyctl deploy`. Use the following to prepare the environment:
 
 ```
-$ flyctl secrets set TRELLO_KEY=... TRELLO_TOKEN=... TRELLO_BOARD=... FLASK_SECRET_KEY=...
+$ flyctl secrets set TRELLO_KEY=... TRELLO_TOKEN=... TELEGRAM_TOKEN=...
 ```
 
-The app also uses GitHub Actions. It needs the `TRELLO_BOARD`, `TRELLO_KEY`, and `TRELLO_TOKEN` secrets set on the [secrets setting page](https://github.com/honzajavorek/film2trello/settings/secrets/actions). The rest is in the `.github` directory.
+The app also uses GitHub Actions. It needs the `TRELLO_KEY`, and `TRELLO_TOKEN` secrets set on the [secrets setting page](https://github.com/honzajavorek/film2trello/settings/secrets/actions). The rest is in the `.github` directory.
 
-### Automatic Deployment
+## Automatic Deployment
 
 Set GitHub Actions secret `FLY_API_TOKEN` to a value you get by running `flyctl auth token`.
 

@@ -1,124 +1,290 @@
-from functools import partial
+import asyncio
+from datetime import date
+from functools import wraps
+from io import BytesIO
+import itertools
 import math
+from typing import Callable, Coroutine, Literal
 
-import requests
+from PIL import Image
+import httpx
 
-from . import csfd
+from film2trello.http import raise_on_error
 
 
 COLORS = {
-    '20m': 'blue',
-    '30m': 'sky',
-    '45m': 'green',
-    '1h': 'lime',
-    '1.5h': 'yellow',
-    '2h': 'orange',
-    '2.5h': 'red',
-    '3+h': 'purple',
+    "20m": "blue",
+    "30m": "sky",
+    "45m": "green",
+    "1h": "lime",
+    "1.5h": "yellow",
+    "2h": "orange",
+    "2.5h": "red",
+    "3+h": "purple",
 }
 
-KVIFFTV_LABEL = dict(name='KVIFF.TV', color='black')
+THUMBNAIL_SIZE = (500, 500)
+
+KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
+
+AVAILABILITY_LABELS = ["KVIFF.TV", "STASH"]
 
 
-class InvalidUsernameError(ValueError):
-    pass
+def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
+    return httpx.AsyncClient(
+        base_url="https://trello.com/1/",
+        params=dict(key=key, token=token),
+        headers={
+            "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)"
+        },
+        http2=True,
+        event_hooks={"response": [raise_on_error]},
+    )
 
 
-def create_session(token, key):
-    def prefix_request(f, method, url, *args, **kwargs):
-        url = 'https://trello.com/1/' + url.lstrip('/')
-        response = f(method, url, *args, **kwargs)
-        response.raise_for_status()
-        return response.json()
+def with_trello_api(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+    @wraps(fn)
+    async def wrapper(*args, **kwargs) -> Coroutine:
+        key = kwargs.pop("trello_key")
+        token = kwargs.pop("trello_token")
+        async with get_trello_api(key, token) as client:
+            return await fn(client, *args, **kwargs)
 
-    session = requests.Session()
-    session.request = partial(prefix_request, session.request)
-    session.params = dict(token=token, key=key)
-    return session
+    return wrapper
 
 
-def card_exists(cards, film):
+async def check_username(
+    trello_api: httpx.AsyncClient,
+    board_id: str,
+    username: str,
+) -> None:
+    members = (await trello_api.get(f"/boards/{board_id}/members")).json()
+    if username not in [member["username"] for member in members]:
+        raise ValueError(f"User '{username}' is not allowed to the board")
+
+
+async def get_working_lists_ids(
+    trello_api: httpx.AsyncClient,
+    board_id: str,
+) -> list[str]:
+    lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
+    return [get_inbox_id(lists), get_archive_id(lists)]
+
+
+async def get_cards(
+    trello_api: httpx.AsyncClient,
+    lists_ids: list[str],
+) -> list[dict]:
+    responses = await asyncio.gather(
+        *(trello_api.get(f"/lists/{list_id}/cards") for list_id in lists_ids)
+    )
+    return list(
+        itertools.chain.from_iterable(response.json() for response in responses)
+    )
+
+
+async def update_card(
+    trello_api: httpx.AsyncClient,
+    card_id: str,
+    card_data: dict,
+) -> None:
+    await trello_api.put(f"/cards/{card_id}/", json=card_data)
+
+
+async def create_card(
+    trello_api: httpx.AsyncClient,
+    card_data: dict,
+) -> str:
+    response = await trello_api.post("/cards", json=card_data)
+    return response.json()["id"]
+
+
+async def join_card(
+    trello_api: httpx.AsyncClient,
+    card_id: str,
+    username: str,
+) -> None:
+    card_members = (await trello_api.get(f"/cards/{card_id}/members")).json()
+    if not_in_members(username, card_members):
+        user_id = (await trello_api.get(f"/members/{username}")).json()["id"]
+        await trello_api.post(
+            f"/cards/{card_id}/members",
+            json=dict(value=user_id),
+        )
+
+
+async def update_card_labels(
+    trello_api: httpx.AsyncClient,
+    card_id: str,
+    labels: list[dict],
+) -> None:
+    card_labels = (await trello_api.get(f"/cards/{card_id}/labels")).json()
+    labels = get_missing_labels(card_labels, labels)
+
+    async def update_label(label: dict) -> None:
+        try:
+            await trello_api.post(f"/cards/{card_id}/labels", params=label)
+        except httpx.HTTPStatusError as e:
+            if "label is already on the card" not in e.response.text:
+                raise e
+
+    await asyncio.gather(*(update_label(label) for label in labels))
+
+
+async def update_card_attachments(
+    trello_api: httpx.AsyncClient,
+    scraper: httpx.AsyncClient,
+    card_id: str,
+    page_urls: list[str],
+    poster_url: str | None = None,
+) -> None:
+    attachments = (await trello_api.get(f"/cards/{card_id}/attachments")).json()
+    page_urls = get_missing_attached_urls(attachments, page_urls)
+
+    await asyncio.gather(
+        *(
+            trello_api.post(f"/cards/{card_id}/attachments", json=dict(url=page_url))
+            for page_url in page_urls
+        )
+    )
+    if not has_poster(attachments) and poster_url:
+        response = await scraper.get(poster_url)
+        await trello_api.post(
+            f"/cards/{card_id}/attachments",
+            files=dict(file=create_thumbnail(response.content)),
+        )
+
+
+async def update_card_position(
+    trello_api: httpx.AsyncClient,
+    card_id: str,
+    position: int,
+) -> None:
+    await trello_api.put(f"/cards/{card_id}/", json=dict(pos=position))
+
+
+async def get_old_cards(
+    trello_api: httpx.AsyncClient,
+    inbox_list_id: str,
+    before: date,
+) -> list[dict]:
+    return (
+        await trello_api.get(
+            f"/lists/{inbox_list_id}/cards", params=dict(before=str(before))
+        )
+    ).json()
+
+
+async def archive_cards(
+    trello_api: httpx.AsyncClient,
+    archive_list_id: str,
+    cards: list[dict],
+) -> None:
+    await asyncio.gather(
+        *(
+            trello_api.put(f"/cards/{card['id']}/", json=dict(idList=archive_list_id))
+            for card in cards
+        )
+    )
+
+
+def get_card_url(card_id: str) -> str:
+    return f"https://trello.com/c/{card_id}"
+
+
+def get_board_url(board_id: str) -> str:
+    return f"https://trello.com/b/{board_id}"
+
+
+def find_card_id(cards: list[dict], title: str, url: str) -> str | None:
     for card in cards:
-        if film['title'] in card['name'] or film['url'] in card['desc']:
-            return card['id']
+        if title in card["name"] or url in card["desc"]:
+            return card["id"]
 
 
-def get_inbox_id(lists):
-    return lists[0]['id']
+def get_inbox_id(lists: list[dict]) -> str:
+    return lists[0]["id"]
 
 
-def get_archive_id(lists):
-    return lists[-1]['id']
+def get_archive_id(lists: list[dict]) -> str:
+    return lists[-1]["id"]
 
 
-def prepare_card_data(list_id, film):
-    return dict(
-        name=film['title'],
-        desc=film['url'],
-        idList=list_id,
-        pos='top',
-    )
+def not_in_members(username, members) -> bool:
+    return username not in [member["username"] for member in members]
 
 
-def prepare_updated_card_data(list_id):
-    return dict(
-        pos='top',
-        idList=list_id,
-    )
+def prepare_card_data(
+    name: str,
+    csfd_url: str,
+    move_to_top: bool = False,
+    move_to_list_id: str | None = None,
+) -> dict:
+    data = dict(name=name, desc=csfd_url)
+    if move_to_top:
+        data["pos"] = "top"
+    if move_to_list_id:
+        data["idList"] = move_to_list_id
+    return data
 
 
-def not_in_members(username, members):
-    return username not in [member['username'] for member in members]
-
-
-def prepare_duration_labels(durations):
+def prepare_duration_labels(durations: list[int]) -> list[dict[str, str]]:
+    labels = []
     for duration in durations:
         name = get_duration_bracket(duration)
-        yield dict(name=name, color=COLORS[name])
+        labels.append(dict(name=name, color=COLORS[name]))
+    return labels
 
 
-def get_duration_bracket(duration):
+def get_duration_bracket(duration: int) -> str:
     duration_cca = math.floor(duration / 10.0) * 10
     if duration <= 20:
-        return '20m'
+        return "20m"
     elif duration <= 30:
-        return '30m'
+        return "30m"
     elif duration <= 45:
-        return '45m'
+        return "45m"
     if duration <= 60:
-        return '1h'
+        return "1h"
     if duration_cca <= 90:
-        return '1.5h'
+        return "1.5h"
     if duration_cca <= 120:
-        return '2h'
+        return "2h"
     if duration_cca <= 150:
-        return '2.5h'
+        return "2.5h"
     else:
-        return '3+h'
+        return "3+h"
 
 
-def get_missing_labels(existing_labels, labels):
-    names = {label['name'] for label in existing_labels}
-    return [label for label in labels if label['name'] not in names]
+def get_missing_labels(existing_labels: list[dict], labels: list[dict]) -> list[dict]:
+    names = {label["name"] for label in existing_labels}
+    return [label for label in labels if label["name"] not in names]
 
 
-def get_missing_attached_urls(existing_attachments, urls):
-    def normalize_url(url):
-        try:
-            return csfd.normalize_url(url)
-        except csfd.InvalidURLError:
-            return url
-
+def get_missing_attached_urls(
+    existing_attachments: list[dict], urls: list[str]
+) -> list[str]:
     existing_urls = {
-        normalize_url(attach['name'])
-        for attach in existing_attachments
-        if attach['name'] == attach['url']
+        attachment["url"]
+        for attachment in existing_attachments
+        if attachment["name"] == attachment["url"]
     }
-    return [url for url in urls if normalize_url(url) not in existing_urls]
+    return list(frozenset(urls) - existing_urls)
 
 
-def has_poster(attachments):
+def has_poster(attachments) -> bool:
     for attachment in attachments:
-        if len(attachment['previews']):
+        if len(attachment["previews"]):
             return True
     return False
+
+
+def create_thumbnail(
+    image_bytes: bytes,
+) -> tuple[Literal["poster.jpg"], BytesIO, Literal["image/jpeg"]]:
+    image = Image.open(image_bytes).convert("RGB")
+    image.thumbnail(THUMBNAIL_SIZE)
+    out_file = BytesIO()
+    image.save(out_file, "JPEG")
+    out_file.seek(0)
+    return ("poster.jpg", out_file, "image/jpeg")
