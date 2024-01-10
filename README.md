@@ -37,6 +37,11 @@ Assumed Trello board structure:
 -   Run `ruff check` to lint
 -   Run `ruff format` to format code
 
+To disable production for a while:
+
+-  Run `flyctl scale count 0` to disable
+-  Run `flyctl scale count 1` to re-enable, then deploy
+
 ## Deployment
 
 The app runs on [Fly.io](https://fly.io/). Install their `flyctl`. Then you can do things like `flyctl launch --name=film2trello` or `flyctl deploy`. Use the following to prepare the environment:
