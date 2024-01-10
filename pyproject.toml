@@ -8,7 +8,7 @@ readme = "README.md"
 repository = "https://github.com/honzajavorek/film2trello/"
 
 [tool.poetry.scripts]
-film2trello = "film2trello:cli.main"
+film2trello = "film2trello.cli:main"
 
 [tool.poetry.dependencies]
 python = "3.11.*"
