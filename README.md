@@ -9,11 +9,6 @@ Assumed Trello board structure:
 -   Last column is "Archive".
     If a card is in the inbox for several years, it gets moved out of the way to this archive.
 
-## TODO
-
-- Deployment
-- In Trello board, deal with the tv shows somehow
-
 ## Setup
 
 -   Install by Poetry
