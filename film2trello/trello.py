@@ -137,7 +137,7 @@ async def update_card_attachments(
     card_id: str,
     page_urls: list[str],
     poster_url: str | None = None,
-) -> None:
+) -> list[str]:
     attachments = (await trello_api.get(f"/cards/{card_id}/attachments")).json()
     page_urls = get_missing_attached_urls(attachments, page_urls)
 
@@ -149,10 +149,14 @@ async def update_card_attachments(
     )
     if not has_poster(attachments) and poster_url:
         response = await scraper.get(poster_url)
-        await trello_api.post(
-            f"/cards/{card_id}/attachments",
-            files=dict(file=create_thumbnail(response.content)),
-        )
+        try:
+            await trello_api.post(
+                f"/cards/{card_id}/attachments",
+                files=dict(file=create_thumbnail(response.content)),
+            )
+        except ValueError as exc:
+            return [f"Unable to update poster: {exc}"]
+    return []
 
 
 async def update_card_position(

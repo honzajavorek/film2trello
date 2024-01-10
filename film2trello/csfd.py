@@ -116,7 +116,9 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
             return f"{first_season_url}/prehled/"
 
     overview_url = csfd_html.cssselect(".main-movie-profile .tabs a")[0].get("href")
-    return overview_url
+    if overview_url.startswith("http"):
+        return overview_url
+    return base_url
 
 
 def get_parent_url(csfd_url: str) -> str:

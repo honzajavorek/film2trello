@@ -111,6 +111,10 @@ def test_parse_kvifftv_url_missing(csfd_html):
             "csfd_tvshow_s_e.html",
             "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/449077-serie-1/prehled/",
         ),
+        (
+            "csfd_missing_overview.html",
+            "https://www.csfd.cz/film/434527-the-sexual-liberation-of-anna-lee/prehled/",
+        ),
     ),
 )
 def test_parse_target_url(filename, expected):

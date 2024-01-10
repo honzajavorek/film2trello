@@ -69,13 +69,17 @@ async def process_message(
     await trello.update_card_labels(trello_api, card_id, labels)
 
     yield "Updating attachments"
-    await trello.update_card_attachments(
+    errors = await trello.update_card_attachments(
         trello_api,
         scraper,
         card_id,
         list(filter(None, [csfd_url, film["kvifftv_url"]])),
         film.get("poster_url"),
     )
+    for error in errors:
+        logger.error(error)
+        yield error
+
     yield f"Done! This is your card: {trello.get_card_url(card_id)}"
 
 
@@ -165,13 +169,15 @@ async def process_inbox(
                 labels.append(trello.KVIFFTV_LABEL)
             await trello.update_card_labels(trello_api, card["id"], labels)
 
-            await trello.update_card_attachments(
+            errors = await trello.update_card_attachments(
                 trello_api,
                 scraper,
                 card["id"],
                 list(filter(None, [csfd_url, film["kvifftv_url"]])),
                 film.get("poster_url"),
             )
+            for error in errors:
+                logger.error(error)
 
             index.append((card, film))
             logger.info(f"Done! {trello.get_card_url(card['id'])}")
