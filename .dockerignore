@@ -9,3 +9,4 @@ conftest.py
 README.md
 LICENSE
 screenshot.png
+.ruff_cache
