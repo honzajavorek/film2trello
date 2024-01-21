@@ -21,6 +21,7 @@ def get_scraper() -> httpx.AsyncClient:
 
 async def raise_on_error(response: httpx.Response) -> None:
     if response.is_client_error or response.is_server_error:
+        await response.aread()
         response.raise_for_status()
 
 

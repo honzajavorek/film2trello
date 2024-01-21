@@ -147,3 +147,20 @@ def test_parse_target_url(filename, expected):
 )
 def test_get_parent_url(csfd_url, expected):
     assert csfd.get_parent_url(csfd_url) == expected
+
+
+@pytest.mark.parametrize(
+    "filename, expected",
+    (
+        ("csfd.html", False),
+        ("csfd_tvshow_e.html", True),
+        ("csfd_tvshow_s.html", True),
+        ("csfd_tvshow_s_e.html", True),
+        ("csfd_missing_overview.html", False),
+    ),
+)
+def test_parse_is_tvshow_true(filename, expected):
+    path = Path(__file__).parent / filename
+    csfd_html = html.fromstring(path.read_text())
+
+    assert csfd.parse_is_tvshow(csfd_html) is expected

@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 import click
+from httpx import HTTPStatusError
 
 from film2trello.bot import run as run_bot
 from film2trello.core import process_inbox
@@ -95,10 +96,14 @@ def inbox(
     trello_key: str,
     trello_token: str,
 ) -> None:
-    asyncio.run(
-        process_inbox(
-            board_id,
-            trello_key=trello_key,
-            trello_token=trello_token,
+    try:
+        asyncio.run(
+            process_inbox(
+                board_id,
+                trello_key=trello_key,
+                trello_token=trello_token,
+            )
         )
-    )
+    except HTTPStatusError as exc:
+        logger.exception(f"{exc}:\n\n{exc.response.text}\n\n")
+        raise click.Abort()

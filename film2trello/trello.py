@@ -27,6 +27,8 @@ THUMBNAIL_SIZE = (500, 500)
 
 KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
 
+TVSHOW_LABEL = dict(name="SERIÁL", color="black")
+
 AVAILABILITY_LABELS = ["KVIFF.TV", "STASH"]
 
 

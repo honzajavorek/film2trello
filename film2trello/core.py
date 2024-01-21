@@ -17,6 +17,7 @@ class Film(TypedDict):
     poster_url: str | None
     kvifftv_url: str | None
     durations: list[int]
+    is_tvshow: bool
 
 
 async def process_message(
@@ -63,9 +64,7 @@ async def process_message(
     await trello.join_card(trello_api, card_id, username)
 
     yield "Updating labels"
-    labels = trello.prepare_duration_labels(film["durations"])
-    if film.get("kvifftv_url"):
-        labels.append(trello.KVIFFTV_LABEL)
+    labels = get_labels(film)
     await trello.update_card_labels(trello_api, card_id, labels)
 
     yield "Updating attachments"
@@ -127,7 +126,17 @@ def get_film(csfd_url: str, pages: dict[str, http.Page]) -> Film:
         poster_url=csfd.parse_poster_url(pages["target"]["html"]),
         durations=list(csfd.parse_durations(pages["target"]["html"])),
         kvifftv_url=csfd.parse_kvifftv_url(pages["parent"]["html"]),
+        is_tvshow=csfd.parse_is_tvshow(pages["parent"]["html"]),
     )
+
+
+def get_labels(film: Film) -> list[dict[str, str]]:
+    labels = trello.prepare_duration_labels(film["durations"])
+    if film.get("kvifftv_url"):
+        labels.append(trello.KVIFFTV_LABEL)
+    if film["is_tvshow"]:
+        labels.append(trello.TVSHOW_LABEL)
+    return labels
 
 
 @trello.with_trello_api
@@ -164,9 +173,7 @@ async def process_inbox(
             card_data = trello.prepare_card_data(film["title"], film["csfd_url"])
             await trello.update_card(trello_api, card["id"], card_data)
 
-            labels = trello.prepare_duration_labels(film["durations"])
-            if film.get("kvifftv_url"):
-                labels.append(trello.KVIFFTV_LABEL)
+            labels = get_labels(film)
             await trello.update_card_labels(trello_api, card["id"], labels)
 
             errors = await trello.update_card_attachments(

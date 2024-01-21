@@ -22,6 +22,8 @@ KVIFF_URL_RE = re.compile(r"https?://(www\.)?kviff\.tv/katalog/[^\s\"']+")
 
 CSFD_URL_RE = re.compile(r"https?://(www\.)?csfd\.cz/film/[^\s\"']+")
 
+TV_SHOW_SUFFIXES = ("seriál", "série", "epizoda")
+
 
 def get_kvifftv_url(text: str) -> str | None:
     if match := KVIFF_URL_RE.search(text):
@@ -130,3 +132,12 @@ def get_parent_url(csfd_url: str) -> str:
             + "/"
         )
     return csfd_url
+
+
+def parse_is_tvshow(csfd_html: html.HtmlElement) -> bool:
+    if title_suffixes := csfd_html.cssselect(".film-header-name .type"):
+        suffix = title_suffixes[0].text_content().strip().lower()
+        for tv_show_suffix in TV_SHOW_SUFFIXES:
+            if tv_show_suffix in suffix:
+                return True
+    return False
