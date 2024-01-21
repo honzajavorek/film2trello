@@ -121,7 +121,7 @@ async def get_csfd_pages(
 
 def get_film(csfd_url: str, pages: dict[str, http.Page]) -> Film:
     return Film(
-        csfd_url=csfd_url,
+        csfd_url=pages["target"]["url"],
         title=csfd.parse_title(pages["target"]["html"]),
         poster_url=csfd.parse_poster_url(pages["target"]["html"]),
         durations=list(csfd.parse_durations(pages["target"]["html"])),
