@@ -101,8 +101,18 @@ def test_parse_kvifftv_url_missing(csfd_html):
 @pytest.mark.parametrize(
     "filename, expected",
     (
-        ("csfd.html", "https://www.csfd.cz/film/8283-posledni-skaut/prehled/"),
-        ("csfd_tvshow_e.html", "https://www.csfd.cz/film/683975-cernobyl/prehled/"),
+        (
+            "csfd.html",
+            "https://www.csfd.cz/film/8283-posledni-skaut/prehled/",
+        ),
+        (
+            "csfd_tvshow.html",
+            "https://www.csfd.cz/film/1184280-medved/1184281-serie-1/prehled/",
+        ),
+        (
+            "csfd_tvshow_e.html",
+            "https://www.csfd.cz/film/683975-cernobyl/prehled/",
+        ),
         (
             "csfd_tvshow_s.html",
             "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/449077-serie-1/prehled/",

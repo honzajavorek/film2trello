@@ -31,8 +31,7 @@ async def process_message(
     csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
-    pages = await get_csfd_pages(scraper, csfd_url)
-    film = get_film(csfd_url, pages)
+    film = get_film(await get_csfd_pages(scraper, csfd_url))
     logger.info(f"Film:\n{pformat(film)}")
 
     yield f"Checking if user '{username}' is allowed to the board"
@@ -100,30 +99,38 @@ async def get_csfd_pages(
     scraper: httpx.AsyncClient,
     csfd_url: str,
 ) -> dict[str, http.Page]:
-    pages = dict(csfd=await http.get_html(scraper, csfd_url))
+    urls = {}
 
-    target_url = csfd.parse_target_url(pages["csfd"]["html"])
+    csfd_page = await http.get_html(scraper, csfd_url)
+    urls[csfd_page["request_url"]] = urls[csfd_page["url"]] = csfd_page
+
+    target_url = csfd.parse_target_url(csfd_page["html"])
     try:
-        pages["target"] = pages[target_url]
+        target_page = urls[target_url]
     except KeyError:
         logger.info(f"Different target URL, scraping: {target_url}")
-        pages["target"] = await http.get_html(scraper, target_url)
+        target_page = await http.get_html(scraper, target_url)
+        urls[target_page["request_url"]] = urls[target_page["url"]] = target_page
 
     parent_url = csfd.get_parent_url(csfd_url)
     try:
-        pages["parent"] = pages[parent_url]
+        parent_page = urls[parent_url]
     except KeyError:
         logger.info(f"Different parent URL, scraping: {parent_url}")
-        pages["parent"] = await http.get_html(scraper, parent_url)
+        parent_page = await http.get_html(scraper, parent_url)
+        urls[parent_page["request_url"]] = urls[parent_page["url"]] = parent_page
 
-    return pages
+    return dict(target=target_page, parent=parent_page)
 
 
-def get_film(csfd_url: str, pages: dict[str, http.Page]) -> Film:
+def get_film(pages: dict[str, http.Page]) -> Film:
     return Film(
         csfd_url=pages["target"]["url"],
         title=csfd.parse_title(pages["target"]["html"]),
-        poster_url=csfd.parse_poster_url(pages["target"]["html"]),
+        poster_url=(
+            csfd.parse_poster_url(pages["target"]["html"])
+            or csfd.parse_poster_url(pages["parent"]["html"])
+        ),
         durations=list(csfd.parse_durations(pages["target"]["html"])),
         kvifftv_url=csfd.parse_kvifftv_url(pages["parent"]["html"]),
         is_tvshow=csfd.parse_is_tvshow(pages["parent"]["html"]),
@@ -165,8 +172,7 @@ async def process_inbox(
         if csfd_url := csfd.get_csfd_url(card["desc"]):
             logger.info(f"CSFD.cz URL: {csfd_url}")
 
-            pages = await get_csfd_pages(scraper, csfd_url)
-            film = get_film(csfd_url, pages)
+            film = get_film(await get_csfd_pages(scraper, csfd_url))
             logger.info(f"Film:\n{pformat(film)}")
 
             logger.info(f"Updating: {card['name']} {trello.get_card_url(card['id'])}")

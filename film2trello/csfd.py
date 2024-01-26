@@ -59,16 +59,15 @@ def parse_title(csfd_html: html.HtmlElement) -> str:
 
 
 def parse_poster_url(csfd_html: html.HtmlElement) -> str | None:
-    srcset = csfd_html.cssselect(".film-posters img")[0].get("srcset")
-    if not srcset:
+    if poster_images := csfd_html.cssselect(".film-posters img"):
+        if srcset := poster_images[0].get("srcset"):
+            srcset_list = re.split(r"\s+", srcset)
+            urls = [f"https:{url}" for url in srcset_list[::2]]
+            zoom = [int(re.sub(r"\D", "", z)) for z in srcset_list[1::2]]
+            srcset_parsed = dict(zip(zoom, urls))
+            return srcset_parsed[max(srcset_parsed.keys())]
         return None
-
-    srcset_list = re.split(r"\s+", srcset)
-    urls = [f"https:{url}" for url in srcset_list[::2]]
-    zoom = [int(re.sub(r"\D", "", z)) for z in srcset_list[1::2]]
-
-    srcset_parsed = dict(zip(zoom, urls))
-    return srcset_parsed[max(srcset_parsed.keys())]
+    return None
 
 
 def parse_durations(csfd_html: html.HtmlElement) -> Generator[int, None, None]:
@@ -110,7 +109,9 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
         return f"{season_url}/prehled/"
 
     if film_type == "(seriál)":
-        episodes_list_heading = csfd_html.cssselect(".main-movie-profile h3")[0]
+        episodes_list_heading = csfd_html.cssselect(
+            ".main-movie-profile .box-header h3"
+        )[0]
         if episodes_list_heading.text_content().strip().startswith("Série("):
             first_season_url = (
                 csfd_html.cssselect(".film-episodes-list a")[0].get("href").rstrip("/")

@@ -35,6 +35,7 @@ def with_scraper(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
 
 
 class Page(TypedDict):
+    request_url: str
     url: str
     html: html.HtmlElement
 
@@ -44,4 +45,4 @@ async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
     page_url = str(response.url)
     page_html = html.fromstring(response.content)
     page_html.make_links_absolute(page_url)
-    return Page(url=page_url, html=page_html)
+    return Page(request_url=url, url=page_url, html=page_html)
