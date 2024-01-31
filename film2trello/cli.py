@@ -66,7 +66,7 @@ def main(debug: bool) -> None:
     help="User in format <telegram_id>:<trello_username>",
     type=parse_user,
     multiple=True,
-    default=["119318534:honzajavorek", "175995069:zuzejk"],
+    default=["119318534:honzajavorek", "175995069:zuzka"],
 )
 @board_id_option
 @click.option(
