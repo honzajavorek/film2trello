@@ -34,8 +34,10 @@ Assumed Trello board structure:
 
 To disable production for a while:
 
--  Run `flyctl scale count 0` to disable
--  Run `flyctl scale count 1` to re-enable, then deploy
+-  ~~Run `flyctl scale count 0` to disable~~
+-  ~~Run `flyctl scale count 1` to re-enable, then deploy~~
+
+**TODO:** Figure out how to do this properly. The commands above created some additional Fly machines I had to destroy afterwards.
 
 ## Deployment
 
