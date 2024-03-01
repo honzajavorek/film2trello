@@ -20,7 +20,7 @@ cssselect = "1.2.0"
 pillow = "10.2.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "8.0.0"
+pytest = "8.0.2"
 ruff = "0.1.15"
 
 [tool.pytest.ini_options]
