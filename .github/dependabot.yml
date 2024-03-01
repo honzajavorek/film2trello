@@ -1,11 +1,16 @@
 version: 2
 updates:
-- package-ecosystem: pip
-  directory: "/"
-  schedule:
-    interval: monthly
-    time: "08:00"
-    timezone: Europe/Prague
-  open-pull-requests-limit: 10
-  labels:
-  - dependencies
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 1
+    labels:
+      - dependencies
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 1
+    labels:
+      - dependencies
