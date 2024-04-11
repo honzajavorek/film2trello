@@ -27,17 +27,12 @@ Assumed Trello board structure:
 
 ## Development
 
--   Use Poetry to manage dependencies
--   Run `pytest` to test
--   Run `ruff check` to lint
--   Run `ruff format` to format code
-
-To disable production for a while:
-
--  ~~Run `flyctl scale count 0` to disable~~
--  ~~Run `flyctl scale count 1` to re-enable, then deploy~~
-
-**TODO:** Figure out how to do this properly. The commands above created some additional Fly machines I had to destroy afterwards.
+-   Use Poetry to manage dependencies.
+-   Run `pytest` to test.
+-   Run `ruff check` to lint.
+-   Run `ruff format` to format code.
+-   To temporarily turn off production, run `flyctl machine stop`.
+    To bring it back, run `flyctl machine start`.
 
 ## Deployment
 
