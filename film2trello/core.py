@@ -200,7 +200,9 @@ async def process_inbox(
 
     if sort_cards:
         logger.info("Sorting cards")
-        for position, (card, _) in enumerate(sorted(index, key=sort_inbox_key), start=1):
+        for position, (card, _) in enumerate(
+            sorted(index, key=sort_inbox_key), start=1
+        ):
             logger.info(f"#{position}: {card['name']}")
             await trello.update_card_position(trello_api, card["id"], position)
     else:
