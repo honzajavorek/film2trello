@@ -91,10 +91,12 @@ def bot(
 @board_id_option
 @trello_key_option
 @trello_token_option
+@click.option("--sort/--no-sort", "sort_cards", default=True)
 def inbox(
     board_id: str,
     trello_key: str,
     trello_token: str,
+    sort_cards: bool,
 ) -> None:
     try:
         asyncio.run(
@@ -102,6 +104,7 @@ def inbox(
                 board_id,
                 trello_key=trello_key,
                 trello_token=trello_token,
+                sort_cards=sort_cards,
             )
         )
     except HTTPStatusError as exc:

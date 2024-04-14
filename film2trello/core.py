@@ -152,6 +152,7 @@ async def process_inbox(
     scraper: httpx.AsyncClient,
     trello_api: httpx.AsyncClient,
     board_id: str,
+    sort_cards: bool = True,
 ) -> None:
     inbox_list_id, archive_list_id = await trello.get_working_lists_ids(
         trello_api, board_id
@@ -197,10 +198,13 @@ async def process_inbox(
         else:
             logger.info("Card description doesn't contain CSFD.cz URL")
 
-    logger.info("Sorting cards")
-    for position, (card, _) in enumerate(sorted(index, key=sort_inbox_key), start=1):
-        logger.info(f"#{position}: {card['name']}")
-        await trello.update_card_position(trello_api, card["id"], position)
+    if sort_cards:
+        logger.info("Sorting cards")
+        for position, (card, _) in enumerate(sorted(index, key=sort_inbox_key), start=1):
+            logger.info(f"#{position}: {card['name']}")
+            await trello.update_card_position(trello_api, card["id"], position)
+    else:
+        logger.info("Skipping cards sorting")
 
 
 def sort_inbox_key(index_item: tuple[dict, Film]) -> tuple[int, int, str]:

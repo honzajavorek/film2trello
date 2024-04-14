@@ -288,9 +288,10 @@ def has_poster(attachments) -> bool:
 def create_thumbnail(
     image_bytes: bytes,
 ) -> tuple[Literal["poster.jpg"], BytesIO, Literal["image/jpeg"]]:
-    image = Image.open(image_bytes).convert("RGB")
-    image.thumbnail(THUMBNAIL_SIZE)
-    out_file = BytesIO()
-    image.save(out_file, "JPEG")
-    out_file.seek(0)
-    return ("poster.jpg", out_file, "image/jpeg")
+    with Image.open(BytesIO(image_bytes)) as image:
+        image = image.convert("RGB")
+        image.thumbnail(THUMBNAIL_SIZE)
+        out_file = BytesIO()
+        image.save(out_file, "JPEG")
+        out_file.seek(0)
+        return ("poster.jpg", out_file, "image/jpeg")
