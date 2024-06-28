@@ -86,6 +86,13 @@ def parse_kvifftv_url(csfd_html: html.HtmlElement) -> str | None:
         return None
 
 
+def parse_netflix_url(csfd_html: html.HtmlElement) -> str | None:
+    try:
+        return csfd_html.cssselect('[href*="netflix.com/title/"]')[0].get("href")
+    except IndexError:
+        return None
+
+
 def parse_target_url(csfd_html: html.HtmlElement) -> str:
     try:
         base_url = csfd_html.cssselect("link[rel='canonical']")[0].get("href")

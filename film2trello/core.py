@@ -16,6 +16,7 @@ class Film(TypedDict):
     csfd_url: str
     poster_url: str | None
     kvifftv_url: str | None
+    netflix_url: str | None
     durations: list[int]
     is_tvshow: bool
 
@@ -133,6 +134,7 @@ def get_film(pages: dict[str, http.Page]) -> Film:
         ),
         durations=list(csfd.parse_durations(pages["target"]["html"])),
         kvifftv_url=csfd.parse_kvifftv_url(pages["parent"]["html"]),
+        netflix_url=csfd.parse_netflix_url(pages["parent"]["html"]),
         is_tvshow=csfd.parse_is_tvshow(pages["parent"]["html"]),
     )
 
@@ -141,6 +143,8 @@ def get_labels(film: Film) -> list[dict[str, str]]:
     labels = trello.prepare_duration_labels(film["durations"])
     if film.get("kvifftv_url"):
         labels.append(trello.KVIFFTV_LABEL)
+    if film.get("netflix_url"):
+        labels.append(trello.NETFLIX_LABEL)
     if film["is_tvshow"]:
         labels.append(trello.TVSHOW_LABEL)
     return labels
@@ -183,11 +187,12 @@ async def process_inbox(
             labels = get_labels(film)
             await trello.update_card_labels(trello_api, card["id"], labels)
 
+            page_urls = [csfd_url, film["kvifftv_url"], film["netflix_url"]]
             errors = await trello.update_card_attachments(
                 trello_api,
                 scraper,
                 card["id"],
-                list(filter(None, [csfd_url, film["kvifftv_url"]])),
+                list(filter(None, page_urls)),
                 film.get("poster_url"),
             )
             for error in errors:

@@ -27,9 +27,11 @@ THUMBNAIL_SIZE = (500, 500)
 
 KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
 
+NETFLIX_LABEL = dict(name="NETFLIX", color="black")
+
 TVSHOW_LABEL = dict(name="SERIÁL", color="black")
 
-AVAILABILITY_LABELS = ["KVIFF.TV", "STASH"]
+AVAILABILITY_LABELS = ["KVIFF.TV", "NETFLIX", "STASH"]
 
 
 def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
