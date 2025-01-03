@@ -17,7 +17,7 @@ click = "8.1.7"
 httpx = {version = "0.25.*", extras = ["http2"]}
 lxml = "5.3.0"
 cssselect = "1.2.0"
-pillow = "11.0.0"
+pillow = "11.1.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.3.4"
