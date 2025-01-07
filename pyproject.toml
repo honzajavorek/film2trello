@@ -13,7 +13,7 @@ film2trello = "film2trello.cli:main"
 [tool.poetry.dependencies]
 python = "3.11.*"
 python-telegram-bot = "20.7"
-click = "8.1.7"
+click = "8.1.8"
 httpx = {version = "0.25.*", extras = ["http2"]}
 lxml = "5.3.0"
 cssselect = "1.2.0"
