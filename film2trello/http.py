@@ -5,8 +5,7 @@ from lxml import html
 
 
 USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) "
-    "Gecko/20100101 Firefox/72.0"
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) Gecko/20100101 Firefox/72.0"
 )
 
 
