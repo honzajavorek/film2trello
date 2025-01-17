@@ -1,5 +1,5 @@
 FROM python:3.11-slim-buster
-RUN python -m pip install -U pip poetry
+RUN python -m pip install -U pip poetry==1.8.5
 ENV PORT 8080
 RUN mkdir /app
 WORKDIR /app
