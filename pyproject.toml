@@ -21,7 +21,7 @@ pillow = "11.3.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "8.4.2"
-ruff = "0.12.*"
+ruff = "0.13.*"
 
 [tool.pytest.ini_options]
 python_files = "test_*.py"
