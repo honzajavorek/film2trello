@@ -1,6 +1,7 @@
 import re
 from typing import Generator
 
+from film2trello import http
 from lxml import html
 
 
@@ -23,6 +24,8 @@ KVIFF_URL_RE = re.compile(r"https?://(www\.)?kviff\.tv/katalog/[^\s\"']+")
 CSFD_URL_RE = re.compile(r"https?://(www\.)?csfd\.cz/film/[^\s\"']+")
 
 TV_SHOW_SUFFIXES = ("seriál", "série", "epizoda")
+
+ANTI_BOT_TITLE_SNIPPET = "ujišťujeme se, že nejste robot"
 
 
 def get_kvifftv_url(text: str) -> str | None:
@@ -130,6 +133,22 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
         if overview_url.startswith("http"):
             return overview_url
     return base_url
+
+
+def is_antibot_page(csfd_html: html.HtmlElement) -> bool:
+    try:
+        title_text = csfd_html.cssselect("title")[0].text_content().strip().lower()
+    except IndexError:
+        return False
+    return ANTI_BOT_TITLE_SNIPPET in title_text
+
+
+def raise_for_antibot(page: http.Page) -> None:
+    if is_antibot_page(page["html"]):
+        raise RuntimeError(
+            "CSFD anti-bot protection page encountered "
+            f"(request_url={page['request_url']}, url={page['url']})"
+        )
 
 
 def get_parent_url(csfd_url: str) -> str:
