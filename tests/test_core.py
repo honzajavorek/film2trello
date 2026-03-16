@@ -8,7 +8,9 @@ from film2trello import core, http
 
 
 @pytest.mark.asyncio
-async def test_get_csfd_pages_raises_runtimeerror_on_antibot(monkeypatch: pytest.MonkeyPatch):
+async def test_get_csfd_pages_raises_runtimeerror_on_antibot(
+    monkeypatch: pytest.MonkeyPatch,
+):
     path = Path(__file__).parent / "csfd_antibot.html"
     anti_bot_html = html.fromstring(path.read_text())
 
