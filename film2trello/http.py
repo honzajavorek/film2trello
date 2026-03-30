@@ -5,13 +5,22 @@ from lxml import html
 
 
 USER_AGENT = (
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.14; rv:72.0) Gecko/20100101 Firefox/72.0"
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:149.0) Gecko/20100101 Firefox/149.0"
 )
+
+DEFAULT_HEADERS = {
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,cs;q=0.8,sk;q=0.7,es;q=0.6",
+    "DNT": "1",
+    "Sec-GPC": "1",
+    "Upgrade-Insecure-Requests": "1",
+    "User-Agent": USER_AGENT,
+}
 
 
 def get_scraper() -> httpx.AsyncClient:
     return httpx.AsyncClient(
-        headers={"User-Agent": USER_AGENT},
+        headers=DEFAULT_HEADERS,
         follow_redirects=True,
         http2=True,
         event_hooks={"response": [raise_on_error]},
