@@ -66,7 +66,7 @@ def test_parse_duration_multiple():
     path = Path(__file__).parent / "csfd_directors_cut.html"
     csfd_html = html.fromstring(path.read_text())
 
-    assert list(csfd.parse_durations(csfd_html)) == [172, 208, 228]
+    assert list(csfd.parse_durations(csfd_html)) == [172, 208, 228, 219]
 
 
 @pytest.mark.parametrize(

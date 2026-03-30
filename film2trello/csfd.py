@@ -28,6 +28,30 @@ TV_SHOW_SUFFIXES = ("seriál", "série", "epizoda")
 ANTI_BOT_TITLE_SNIPPET = "ujišťujeme se, že nejste robot"
 
 
+def normalize_whitespace(text: str) -> str:
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def clean_alternate_title(text: str) -> str:
+    text = normalize_whitespace(text)
+    text = re.sub(r"\s+\((více|méně)\)$", "", text)
+    return re.sub(r"\s+(více|méně)$", "", text).strip()
+
+
+def get_base_url(csfd_html: html.HtmlElement) -> str:
+    try:
+        return csfd_html.cssselect("link[rel='canonical']")[0].get("href")
+    except IndexError:
+        return csfd_html.cssselect("meta[property='og:url']")[0].get("content")
+
+
+def ensure_overview_url(url: str) -> str:
+    normalized = url.rstrip("/")
+    if normalized.endswith("/prehled"):
+        return f"{normalized}/"
+    return f"{normalized}/prehled/"
+
+
 def get_kvifftv_url(text: str) -> str | None:
     if match := KVIFF_URL_RE.search(text):
         return match.group(0)
@@ -55,7 +79,7 @@ def parse_title(csfd_html: html.HtmlElement) -> str:
     except IndexError:
         return f"{title} ({year})"
     else:
-        first_lang_text = re.sub(r"\s*\(více\)", "", first_lang.text_content().strip())
+        first_lang_text = clean_alternate_title(first_lang.text_content())
         if title == first_lang_text or TITLE_SPECIAL_NAME_RE.search(first_lang_text):
             return f"{title} ({year})"
         return f"{title} / {first_lang_text} ({year})"
@@ -74,12 +98,16 @@ def parse_poster_url(csfd_html: html.HtmlElement) -> str | None:
 
 
 def parse_durations(csfd_html: html.HtmlElement) -> Generator[int, None, None]:
-    text = csfd_html.cssselect(".origin")[0].text_content().lower()
+    text = normalize_whitespace(
+        csfd_html.cssselect(".origin")[0].text_content().lower()
+    )
     if match := re.search(r"minutáž:\s+([\d\–\-]+)\s+min", text):
         yield from map(int, re.split(r"\D+", match.group(1)))
-    else:
-        for match in re.finditer(r"\b(\d+)\s+min\b", text):
-            yield int(match.group(1))
+        return
+
+    yield from dict.fromkeys(
+        int(match.group(1)) for match in re.finditer(r"\b(\d+)\s+min\b", text)
+    )
 
 
 def parse_kvifftv_url(csfd_html: html.HtmlElement) -> str | None:
@@ -97,10 +125,7 @@ def parse_netflix_url(csfd_html: html.HtmlElement) -> str | None:
 
 
 def parse_target_url(csfd_html: html.HtmlElement) -> str:
-    try:
-        base_url = csfd_html.cssselect("link[rel='canonical']")[0].get("href")
-    except IndexError:
-        base_url = csfd_html.cssselect("meta[property='og:url']")[0].get("content")
+    base_url = get_base_url(csfd_html)
     csfd_html.make_links_absolute(base_url)
 
     try:
@@ -116,23 +141,23 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
             .get("href")
             .rstrip("/")
         )
-        return f"{season_url}/prehled/"
+        return ensure_overview_url(season_url)
 
     if film_type == "(seriál)":
-        episodes_list_heading = csfd_html.cssselect(
-            ".main-movie-profile .box-header h3"
-        )[0]
-        if episodes_list_heading.text_content().strip().startswith("Série("):
-            first_season_url = (
-                csfd_html.cssselect(".film-episodes-list a")[0].get("href").rstrip("/")
-            )
-            return f"{first_season_url}/prehled/"
+        episode_links = [
+            link.get("href")
+            for link in csfd_html.cssselect(".film-episodes-list a")
+            if link.get("href")
+        ]
+        for episode_link in episode_links:
+            if re.search(r"/\d+-serie-\d+(/|$)", episode_link):
+                return ensure_overview_url(episode_link)
 
     if tabs := csfd_html.cssselect(".main-movie-profile .tabs a"):
         overview_url = tabs[0].get("href")
         if overview_url.startswith("http"):
-            return overview_url
-    return base_url
+            return ensure_overview_url(overview_url)
+    return ensure_overview_url(base_url)
 
 
 def is_antibot_page(csfd_html: html.HtmlElement) -> bool:
