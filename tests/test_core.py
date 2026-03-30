@@ -8,10 +8,12 @@ from film2trello import core, http
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("filename", ("csfd_antibot_cs.html", "csfd_antibot_en.html"))
 async def test_get_csfd_pages_raises_runtimeerror_on_antibot(
     monkeypatch: pytest.MonkeyPatch,
+    filename: str,
 ):
-    path = Path(__file__).parent / "csfd_antibot.html"
+    path = Path(__file__).parent / filename
     anti_bot_html = html.fromstring(path.read_text())
 
     async def fake_get_html(scraper: httpx.AsyncClient, url: str) -> http.Page:

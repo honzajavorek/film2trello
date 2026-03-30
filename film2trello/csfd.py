@@ -25,8 +25,6 @@ CSFD_URL_RE = re.compile(r"https?://(www\.)?csfd\.cz/film/[^\s\"']+")
 
 TV_SHOW_SUFFIXES = ("seriál", "série", "epizoda")
 
-ANTI_BOT_TITLE_SNIPPET = "ujišťujeme se, že nejste robot"
-
 
 def normalize_whitespace(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
@@ -161,11 +159,7 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
 
 
 def is_antibot_page(csfd_html: html.HtmlElement) -> bool:
-    try:
-        title_text = csfd_html.cssselect("title")[0].text_content().strip().lower()
-    except IndexError:
-        return False
-    return ANTI_BOT_TITLE_SNIPPET in title_text
+    return bool(csfd_html.cssselect("head script#anubis_challenge"))
 
 
 def raise_for_antibot(page: http.Page) -> None:
