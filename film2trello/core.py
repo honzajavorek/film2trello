@@ -103,7 +103,6 @@ async def get_csfd_pages(
     urls = {}
 
     csfd_page = await http.get_html(scraper, csfd_url)
-    csfd.raise_for_antibot(csfd_page)
     urls[csfd_page["request_url"]] = urls[csfd_page["url"]] = csfd_page
 
     target_url = csfd.parse_target_url(csfd_page["html"])
@@ -112,7 +111,6 @@ async def get_csfd_pages(
     except KeyError:
         logger.info(f"Different target URL, scraping: {target_url}")
         target_page = await http.get_html(scraper, target_url)
-        csfd.raise_for_antibot(target_page)
         urls[target_page["request_url"]] = urls[target_page["url"]] = target_page
 
     parent_url = csfd.get_parent_url(csfd_url)
@@ -121,7 +119,6 @@ async def get_csfd_pages(
     except KeyError:
         logger.info(f"Different parent URL, scraping: {parent_url}")
         parent_page = await http.get_html(scraper, parent_url)
-        csfd.raise_for_antibot(parent_page)
         urls[parent_page["request_url"]] = urls[parent_page["url"]] = parent_page
 
     return dict(target=target_page, parent=parent_page)

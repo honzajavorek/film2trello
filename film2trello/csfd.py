@@ -1,7 +1,6 @@
 import re
 from typing import Generator
 
-from film2trello import http
 from lxml import html
 
 
@@ -160,14 +159,6 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
 
 def is_antibot_page(csfd_html: html.HtmlElement) -> bool:
     return bool(csfd_html.cssselect("head script#anubis_challenge"))
-
-
-def raise_for_antibot(page: http.Page) -> None:
-    if is_antibot_page(page["html"]):
-        raise RuntimeError(
-            "CSFD anti-bot protection page encountered "
-            f"(request_url={page['request_url']}, url={page['url']})"
-        )
 
 
 def get_parent_url(csfd_url: str) -> str:
