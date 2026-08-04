@@ -10,41 +10,28 @@ import stamina
 logger = logging.getLogger("film2trello.http")
 
 
-# httpx applies a 5s timeout to connect/read/write/pool by default, which is
-# what we want (unlike 'requests', which waits forever). Kept explicit so it's
-# obvious the clients are guarded and easy to tune.
-TIMEOUT = httpx.Timeout(5.0)
-
-# Transport-level failures worth retrying: timeouts (incl. ReadTimeout) and
-# connection errors such as resets. These happen before we get a response, so
-# retrying the request is safe.
-RETRY_ON: tuple[type[Exception], ...] = (httpx.TransportError,)
+# Only safe (idempotent) methods are replayed. A timed-out POST/PUT may have
+# already reached the server, so retrying it could duplicate a write.
+SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
 RETRY_ATTEMPTS = 3
 
 
 class RetryTransport(httpx.AsyncBaseTransport):
-    """Wraps a transport and retries requests failing with transport-level
-    errors (timeouts, connection resets) using exponential backoff."""
+    """Retries safe requests that fail with transport-level errors such as
+    timeouts (incl. ReadTimeout) or connection resets."""
 
     def __init__(self, transport: httpx.AsyncBaseTransport) -> None:
         self.transport = transport
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        async for attempt in stamina.retry_context(
-            on=RETRY_ON, attempts=RETRY_ATTEMPTS
-        ):
-            with attempt:
-                if attempt.num > 1:
-                    logger.warning(
-                        "Retrying %s %s (attempt %d/%d)",
-                        request.method,
-                        request.url,
-                        attempt.num,
-                        RETRY_ATTEMPTS,
-                    )
-                return await self.transport.handle_async_request(request)
-        raise AssertionError("unreachable")  # pragma: no cover
+        if request.method in SAFE_METHODS:
+            return await self._send_with_retries(request)
+        return await self.transport.handle_async_request(request)
+
+    @stamina.retry(on=httpx.TransportError, attempts=RETRY_ATTEMPTS)
+    async def _send_with_retries(self, request: httpx.Request) -> httpx.Response:
+        return await self.transport.handle_async_request(request)
 
     async def aclose(self) -> None:
         await self.transport.aclose()
@@ -125,7 +112,6 @@ def get_scraper() -> httpx.AsyncClient:
         headers=get_default_headers(),
         follow_redirects=True,
         transport=get_transport(),
-        timeout=TIMEOUT,
         event_hooks={"response": [raise_on_error]},
     )
 

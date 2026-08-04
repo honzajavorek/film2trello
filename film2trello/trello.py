@@ -9,7 +9,7 @@ from typing import Callable, Coroutine, Literal
 from PIL import Image
 import httpx
 
-from film2trello.http import TIMEOUT, get_transport, raise_on_error
+from film2trello.http import get_transport, raise_on_error
 
 
 COLORS = {
@@ -42,7 +42,6 @@ def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
             "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)"
         },
         transport=get_transport(),
-        timeout=TIMEOUT,
         event_hooks={"response": [raise_on_error]},
     )
 

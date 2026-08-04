@@ -48,6 +48,23 @@ async def test_retry_transport_gives_up_after_attempts():
 
 
 @pytest.mark.asyncio
+async def test_retry_transport_does_not_retry_unsafe_methods():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        raise httpx.ReadTimeout("boom", request=request)
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(httpx.ReadTimeout):
+            await client.post("https://example.com/", json={"foo": "bar"})
+
+    # A timed-out write must not be replayed.
+    assert len(calls) == 1
+
+
+@pytest.mark.asyncio
 async def test_retry_transport_does_not_retry_success():
     calls = []
 
