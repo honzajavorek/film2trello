@@ -7,9 +7,7 @@ from film2trello import http
 
 @pytest.fixture(autouse=True)
 def no_backoff():
-    # Disable stamina's exponential backoff so retries don't actually sleep,
-    # while keeping the configured number of attempts.
-    with stamina.set_testing(True, attempts=http.RETRY_ATTEMPTS):
+    with stamina.set_testing(True, attempts=100, cap=True):
         yield
 
 
@@ -39,12 +37,12 @@ async def test_retry_transport_gives_up_after_attempts():
         calls.append(request)
         raise httpx.ReadTimeout("boom", request=request)
 
-    transport = http.RetryTransport(httpx.MockTransport(handler))
+    transport = http.RetryTransport(httpx.MockTransport(handler), attempts=2)
     async with httpx.AsyncClient(transport=transport) as client:
         with pytest.raises(httpx.ReadTimeout):
             await client.get("https://example.com/")
 
-    assert len(calls) == http.RETRY_ATTEMPTS
+    assert len(calls) == 2
 
 
 @pytest.mark.asyncio
@@ -60,7 +58,6 @@ async def test_retry_transport_does_not_retry_unsafe_methods():
         with pytest.raises(httpx.ReadTimeout):
             await client.post("https://example.com/", json={"foo": "bar"})
 
-    # A timed-out write must not be replayed.
     assert len(calls) == 1
 
 

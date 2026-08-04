@@ -10,28 +10,29 @@ import stamina
 logger = logging.getLogger("film2trello.http")
 
 
-# Only safe (idempotent) methods are replayed. A timed-out POST/PUT may have
-# already reached the server, so retrying it could duplicate a write.
-SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
-
-RETRY_ATTEMPTS = 3
-
-
 class RetryTransport(httpx.AsyncBaseTransport):
     """Retries safe requests that fail with transport-level errors such as
     timeouts (incl. ReadTimeout) or connection resets."""
 
-    def __init__(self, transport: httpx.AsyncBaseTransport) -> None:
+    # Only safe (idempotent) methods are replayed. A timed-out POST/PUT may
+    # have already reached the server, so retrying it could duplicate a write.
+    SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+    def __init__(
+        self,
+        transport: httpx.AsyncBaseTransport,
+        attempts: int = 3,
+    ) -> None:
         self.transport = transport
+        self.attempts = attempts
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        if request.method in SAFE_METHODS:
-            return await self._send_with_retries(request)
-        return await self.transport.handle_async_request(request)
-
-    @stamina.retry(on=httpx.TransportError, attempts=RETRY_ATTEMPTS)
-    async def _send_with_retries(self, request: httpx.Request) -> httpx.Response:
-        return await self.transport.handle_async_request(request)
+        if request.method not in self.SAFE_METHODS:
+            return await self.transport.handle_async_request(request)
+        send = stamina.retry(on=httpx.TransportError, attempts=self.attempts)(
+            self.transport.handle_async_request
+        )
+        return await send(request)
 
     async def aclose(self) -> None:
         await self.transport.aclose()
