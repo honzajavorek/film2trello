@@ -8,12 +8,16 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
 
+# Run as a dedicated non-root user
+RUN useradd --create-home --uid 1000 app
 WORKDIR /app
+RUN chown app:app /app
+USER app
 
 # Install dependencies first (cached unless the lockfile changes), then the project
-COPY pyproject.toml uv.lock ./
+COPY --chown=app:app pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-COPY . .
+COPY --chown=app:app . .
 RUN uv sync --frozen --no-dev
 
 CMD ["film2trello", "bot"]
