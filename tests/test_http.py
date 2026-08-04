@@ -1,0 +1,63 @@
+import httpx
+import pytest
+import stamina
+
+from film2trello import http
+
+
+@pytest.fixture(autouse=True)
+def no_backoff():
+    # Disable stamina's exponential backoff so retries don't actually sleep,
+    # while keeping the configured number of attempts.
+    with stamina.set_testing(True, attempts=http.RETRY_ATTEMPTS):
+        yield
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_retries_read_timeout():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if len(calls) < 2:
+            raise httpx.ReadTimeout("boom", request=request)
+        return httpx.Response(200, text="ok")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.get("https://example.com/")
+
+    assert response.status_code == 200
+    assert len(calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_gives_up_after_attempts():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        raise httpx.ReadTimeout("boom", request=request)
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(httpx.ReadTimeout):
+            await client.get("https://example.com/")
+
+    assert len(calls) == http.RETRY_ATTEMPTS
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_does_not_retry_success():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(200, text="ok")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.get("https://example.com/")
+
+    assert response.status_code == 200
+    assert len(calls) == 1

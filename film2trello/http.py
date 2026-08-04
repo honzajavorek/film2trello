@@ -10,6 +10,50 @@ import stamina
 logger = logging.getLogger("film2trello.http")
 
 
+# httpx applies a 5s timeout to connect/read/write/pool by default, which is
+# what we want (unlike 'requests', which waits forever). Kept explicit so it's
+# obvious the clients are guarded and easy to tune.
+TIMEOUT = httpx.Timeout(5.0)
+
+# Transport-level failures worth retrying: timeouts (incl. ReadTimeout) and
+# connection errors such as resets. These happen before we get a response, so
+# retrying the request is safe.
+RETRY_ON: tuple[type[Exception], ...] = (httpx.TransportError,)
+
+RETRY_ATTEMPTS = 3
+
+
+class RetryTransport(httpx.AsyncBaseTransport):
+    """Wraps a transport and retries requests failing with transport-level
+    errors (timeouts, connection resets) using exponential backoff."""
+
+    def __init__(self, transport: httpx.AsyncBaseTransport) -> None:
+        self.transport = transport
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        async for attempt in stamina.retry_context(
+            on=RETRY_ON, attempts=RETRY_ATTEMPTS
+        ):
+            with attempt:
+                if attempt.num > 1:
+                    logger.warning(
+                        "Retrying %s %s (attempt %d/%d)",
+                        request.method,
+                        request.url,
+                        attempt.num,
+                        RETRY_ATTEMPTS,
+                    )
+                return await self.transport.handle_async_request(request)
+        raise AssertionError("unreachable")  # pragma: no cover
+
+    async def aclose(self) -> None:
+        await self.transport.aclose()
+
+
+def get_transport() -> httpx.AsyncBaseTransport:
+    return RetryTransport(httpx.AsyncHTTPTransport(http2=True))
+
+
 BROWSER_PROFILES: tuple[dict[str, str], ...] = (
     {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -80,7 +124,8 @@ def get_scraper() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         headers=get_default_headers(),
         follow_redirects=True,
-        http2=True,
+        transport=get_transport(),
+        timeout=TIMEOUT,
         event_hooks={"response": [raise_on_error]},
     )
 
