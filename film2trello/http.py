@@ -10,6 +10,38 @@ import stamina
 logger = logging.getLogger("film2trello.http")
 
 
+class RetryTransport(httpx.AsyncBaseTransport):
+    """Retries safe requests that fail with transport-level errors such as
+    timeouts (incl. ReadTimeout) or connection resets."""
+
+    # Only safe (idempotent) methods are replayed. A timed-out POST/PUT may
+    # have already reached the server, so retrying it could duplicate a write.
+    SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+    def __init__(
+        self,
+        transport: httpx.AsyncBaseTransport,
+        attempts: int = 3,
+    ) -> None:
+        self.transport = transport
+        self.attempts = attempts
+
+    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
+        if request.method not in self.SAFE_METHODS:
+            return await self.transport.handle_async_request(request)
+        send = stamina.retry(on=httpx.TransportError, attempts=self.attempts)(
+            self.transport.handle_async_request
+        )
+        return await send(request)
+
+    async def aclose(self) -> None:
+        await self.transport.aclose()
+
+
+def get_transport() -> httpx.AsyncBaseTransport:
+    return RetryTransport(httpx.AsyncHTTPTransport(http2=True))
+
+
 BROWSER_PROFILES: tuple[dict[str, str], ...] = (
     {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -80,7 +112,7 @@ def get_scraper() -> httpx.AsyncClient:
     return httpx.AsyncClient(
         headers=get_default_headers(),
         follow_redirects=True,
-        http2=True,
+        transport=get_transport(),
         event_hooks={"response": [raise_on_error]},
     )
 
