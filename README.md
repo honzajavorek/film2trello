@@ -11,7 +11,7 @@ Assumed Trello board structure:
 
 ## Setup
 
--   Install by Poetry
+-   Install [uv](https://docs.astral.sh/uv/), then run `uv sync` to create the virtual environment and install dependencies
 -   Set `TELEGRAM_TOKEN` environment variable to the token BotFather gives you
 -   Set `TRELLO_KEY` environment variable to something you get at [Trello Power-Ups Admin](https://trello.com/power-ups/admin/)
 -   Set `TRELLO_TOKEN` environment variable to something you get at [Trello Power-Ups Admin](https://trello.com/power-ups/admin/), alternatively make a GET request to `https://trello.com/1/authorize?expiration=never&scope=read,write&response_type=token&name=film2trello&key=<TRELLO_KEY>`, where `TRELLO_KEY` is the key above.
@@ -22,15 +22,15 @@ Assumed Trello board structure:
     Override it with `--user`, e.g. `--user=119318534:honzajavorek`.
     You can use the option multiple times to allow more users.
     I don't remember how I've got the Telegram account IDs, ask the internet.
--   Run `film2trello bot`
+-   Run `uv run film2trello bot`
 -   Stop by Ctrl+C
 
 ## Development
 
--   Use Poetry to manage dependencies.
--   Run `pytest` to test.
--   Run `ruff check` to lint.
--   Run `ruff format` to format code.
+-   Use [uv](https://docs.astral.sh/uv/) to manage dependencies. Run `uv sync` to install them.
+-   Run `uv run pytest` to test.
+-   Run `uv run ruff check` to lint.
+-   Run `uv run ruff format` to format code.
 -   To temporarily turn off production, run `flyctl machine stop`.
     To bring it back, run `flyctl machine start`.
 
