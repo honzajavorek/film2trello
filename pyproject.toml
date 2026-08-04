@@ -5,7 +5,7 @@ description = "Turns film links to Trello cards 🍿"
 authors = [{ name = "Honza Javorek", email = "mail@honzajavorek.cz" }]
 license = "MIT"
 readme = "README.md"
-requires-python = ">=3.11,<3.12"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "python-telegram-bot>=20.7",
     "click>=8.3.1",
@@ -36,7 +36,7 @@ addopts = "--ff"
 asyncio_default_fixture_loop_scope = "function"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint.isort]
 combine-as-imports = true
