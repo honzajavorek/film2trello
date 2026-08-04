@@ -11,26 +11,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Poetry
-        run: pipx install poetry==1.8.5
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version-file: pyproject.toml
-          cache: poetry
+          version: "0.8.17"
+          enable-cache: true
 
       - name: Install Python dependencies
-        run: poetry install
+        run: uv sync --frozen
 
       - name: Test
-        run: poetry run pytest
+        run: uv run pytest
 
       - name: Lint
-        run: poetry run ruff check
+        run: uv run ruff check
 
       - name: Format
-        run: poetry run ruff format --check
+        run: uv run ruff format --check
 
       - name: Install Fly
         if: ${{ github.ref == 'refs/heads/main' }}

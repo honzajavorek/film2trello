@@ -14,20 +14,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Install Poetry
-        run: pipx install poetry==1.8.5
-
-      - name: Setup Python
-        uses: actions/setup-python@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
-          python-version-file: pyproject.toml
-          cache: poetry
+          version: "0.8.17"
+          enable-cache: true
 
       - name: Install Python dependencies
-        run: poetry install
+        run: uv sync --frozen
 
       - name: Process Inbox
-        run: poetry run film2trello inbox
+        run: uv run film2trello inbox
         env:
           TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
           TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
