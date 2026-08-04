@@ -15,4 +15,6 @@ LICENSE
 bg.png
 logo.png
 test_image.jpg
-# README.md is required: hatchling reads it (project.readme) when building the wheel
+# README.md is required: the build backend reads it (project.readme) when
+# building the wheel, so it must stay in the build context (verified: excluding
+# it makes `uv sync` fail with "failed to open file /app/README.md").
