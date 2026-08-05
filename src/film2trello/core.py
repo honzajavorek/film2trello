@@ -121,7 +121,7 @@ async def get_csfd_pages(
         parent_page = await http.get_html(scraper, parent_url)
         urls[parent_page["request_url"]] = urls[parent_page["url"]] = parent_page
 
-    return dict(target=target_page, parent=parent_page)
+    return {"target": target_page, "parent": parent_page}
 
 
 def get_film(pages: dict[str, http.Page]) -> Film:

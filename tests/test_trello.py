@@ -7,10 +7,12 @@ def test_find_card_id_matches_title():
     assert (
         trello.find_card_id(
             [
-                dict(id="1", name="Foo Bar (2020)", desc=""),
-                dict(
-                    id="2", name="Poslední skaut / The Last Boy Scout (1991)", desc=""
-                ),
+                {"id": "1", "name": "Foo Bar (2020)", "desc": ""},
+                {
+                    "id": "2",
+                    "name": "Poslední skaut / The Last Boy Scout (1991)",
+                    "desc": "",
+                },
             ],
             "Poslední skaut / The Last Boy Scout (1991)",
             "https://www.csfd.cz/film/8283-posledni-skaut/",
@@ -23,12 +25,12 @@ def test_find_card_id_matches_url():
     assert (
         trello.find_card_id(
             [
-                dict(
-                    id="1",
-                    name="",
-                    desc="https://www.csfd.cz/film/8283-posledni-skaut/",
-                ),
-                dict(id="2", name="", desc="https://example.com"),
+                {
+                    "id": "1",
+                    "name": "",
+                    "desc": "https://www.csfd.cz/film/8283-posledni-skaut/",
+                },
+                {"id": "2", "name": "", "desc": "https://example.com"},
             ],
             "Poslední skaut / The Last Boy Scout (1991)",
             "https://www.csfd.cz/film/8283-posledni-skaut/",
@@ -41,8 +43,8 @@ def test_find_card_id_doesnt_match():
     assert (
         trello.find_card_id(
             [
-                dict(id="1", name="", desc="https://example.com"),
-                dict(id="2", name="", desc="https://example.com"),
+                {"id": "1", "name": "", "desc": "https://example.com"},
+                {"id": "2", "name": "", "desc": "https://example.com"},
             ],
             "Poslední skaut / The Last Boy Scout (1991)",
             "https://www.csfd.cz/film/8283-posledni-skaut/",
@@ -55,10 +57,10 @@ def test_get_inbox_list_id():
     assert (
         trello.get_inbox_id(
             [
-                dict(id="1"),
-                dict(id="2"),
-                dict(id="3"),
-                dict(id="4"),
+                {"id": "1"},
+                {"id": "2"},
+                {"id": "3"},
+                {"id": "4"},
             ]
         )
         == "1"
@@ -69,10 +71,10 @@ def test_get_archive_list_id():
     assert (
         trello.get_archive_id(
             [
-                dict(id="1"),
-                dict(id="2"),
-                dict(id="3"),
-                dict(id="4"),
+                {"id": "1"},
+                {"id": "2"},
+                {"id": "3"},
+                {"id": "4"},
             ]
         )
         == "4"
@@ -84,8 +86,8 @@ def test_not_in_members_when_it_is():
         trello.not_in_members(
             "honzajavorek",
             [
-                dict(username="vladimir"),
-                dict(username="honzajavorek"),
+                {"username": "vladimir"},
+                {"username": "honzajavorek"},
             ],
         )
         is False
@@ -97,8 +99,8 @@ def test_not_in_members_when_it_isnt():
         trello.not_in_members(
             "honzajavorek",
             [
-                dict(username="vladimir"),
-                dict(username="kvetoslava"),
+                {"username": "vladimir"},
+                {"username": "kvetoslava"},
             ],
         )
         is True
@@ -111,9 +113,9 @@ def test_not_in_members_when_members_empty():
 
 def test_prepare_duration_labels():
     assert list(trello.prepare_duration_labels([20, 55, 130])) == [
-        dict(name="20m", color="blue"),
-        dict(name="1h", color="lime"),
-        dict(name="2.5h", color="red"),
+        {"name": "20m", "color": "blue"},
+        {"name": "1h", "color": "lime"},
+        {"name": "2.5h", "color": "red"},
     ]
 
 
@@ -123,13 +125,13 @@ def test_get_missing_labels():
         {"id": "...", "idBoard": "...", "name": "3+h", "color": "purple"},
     ]
     labels = [
-        dict(name="KVIFF.TV", color="black"),
-        dict(name="3+h", color="purple"),
-        dict(name="2.5h", color="red"),
+        {"name": "KVIFF.TV", "color": "black"},
+        {"name": "3+h", "color": "purple"},
+        {"name": "2.5h", "color": "red"},
     ]
 
     assert trello.get_missing_labels(existing_labels, labels) == [
-        dict(name="KVIFF.TV", color="black"),
+        {"name": "KVIFF.TV", "color": "black"},
     ]
 
 
