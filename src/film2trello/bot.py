@@ -1,7 +1,7 @@
 import logging
 from functools import partial
-import httpx
 
+import httpx
 from telegram import Update
 from telegram.ext import (
     Application,

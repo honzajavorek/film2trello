@@ -1,11 +1,11 @@
-from datetime import date, timedelta
 import logging
+from datetime import date, timedelta
 from pprint import pformat
 from typing import AsyncGenerator, TypedDict
 
 import httpx
 
-from film2trello import csfd, trello, http
+from film2trello import csfd, http, trello
 
 
 logger = logging.getLogger("film2trello.core")
