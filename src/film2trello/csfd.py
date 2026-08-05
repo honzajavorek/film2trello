@@ -1,5 +1,5 @@
 import re
-from typing import Generator
+from collections.abc import Generator
 
 from lxml import html
 

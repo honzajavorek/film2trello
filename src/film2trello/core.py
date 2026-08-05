@@ -1,7 +1,8 @@
 import logging
+from collections.abc import AsyncGenerator
 from datetime import date, timedelta
 from pprint import pformat
-from typing import AsyncGenerator, TypedDict
+from typing import TypedDict
 
 import httpx
 

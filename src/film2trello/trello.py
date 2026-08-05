@@ -1,10 +1,11 @@
 import asyncio
 import itertools
 import math
+from collections.abc import Callable, Coroutine
 from datetime import date
 from functools import wraps
 from io import BytesIO
-from typing import Callable, Coroutine, Literal
+from typing import Literal
 
 import httpx
 from PIL import Image

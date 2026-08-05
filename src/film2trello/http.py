@@ -1,7 +1,8 @@
 import logging
 import random
+from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Callable, Coroutine, TypedDict
+from typing import TypedDict
 
 import httpx
 import stamina
