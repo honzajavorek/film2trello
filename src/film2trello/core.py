@@ -223,10 +223,8 @@ def sort_inbox_key(index_item: tuple[dict, Film]) -> tuple[int, int, str]:
     is_available = (
         0
         if any(
-            [
-                availability_label in labels
-                for availability_label in trello.AVAILABILITY_LABELS
-            ]
+            availability_label in labels
+            for availability_label in trello.AVAILABILITY_LABELS
         )
         else 1
     )
