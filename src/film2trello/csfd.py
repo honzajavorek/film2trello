@@ -94,7 +94,7 @@ def parse_poster_url(csfd_html: html.HtmlElement) -> str | None:
     return None
 
 
-def parse_durations(csfd_html: html.HtmlElement) -> Generator[int, None, None]:
+def parse_durations(csfd_html: html.HtmlElement) -> Generator[int]:
     text = normalize_whitespace(
         csfd_html.cssselect(".origin")[0].text_content().lower()
     )

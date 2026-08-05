@@ -28,7 +28,7 @@ async def process_message(
     username: str,
     message_text: str,
     board_id: str,
-) -> AsyncGenerator[str, None]:
+) -> AsyncGenerator[str]:
     yield "Figuring out CSFD.cz URL…"
     csfd_url = await get_csfd_url(scraper, message_text)
 
