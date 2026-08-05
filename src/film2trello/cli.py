@@ -108,5 +108,5 @@ def inbox(
             )
         )
     except HTTPStatusError as exc:
-        logger.exception(f"{exc}:\n\n{exc.response.text}\n\n")
+        logger.exception(exc.response.text)
         raise click.Abort()

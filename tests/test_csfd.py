@@ -149,10 +149,6 @@ def test_parse_target_url(filename, expected):
             "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/449077-serie-1/prehled/",
             "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/prehled/",
         ),
-        (
-            "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/449077-serie-1/prehled/",
-            "https://www.csfd.cz/film/346500-pod-cernou-vlajkou/prehled/",
-        ),
     ),
 )
 def test_get_parent_url(csfd_url, expected):

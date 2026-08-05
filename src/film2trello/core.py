@@ -1,6 +1,6 @@
 import logging
 from collections.abc import AsyncGenerator
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 from pprint import pformat
 from typing import TypedDict
 
@@ -163,7 +163,7 @@ async def process_inbox(
         trello_api, board_id
     )
 
-    years_ago = date.today() - timedelta(days=365 * 2)
+    years_ago = datetime.now(UTC).date() - timedelta(days=365 * 2)
     years_old_cards = await trello.get_old_cards(trello_api, inbox_list_id, years_ago)
     logger.info(f"Found {len(years_old_cards)} years old cards")
     for card in years_old_cards:

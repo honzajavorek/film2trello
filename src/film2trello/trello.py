@@ -131,7 +131,7 @@ async def update_card_labels(
             await trello_api.post(f"/cards/{card_id}/labels", params=label)
         except httpx.HTTPStatusError as e:
             if "label is already on the card" not in e.response.text:
-                raise e
+                raise
 
     await asyncio.gather(*(update_label(label) for label in labels))
 
