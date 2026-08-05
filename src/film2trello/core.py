@@ -7,6 +7,7 @@ import httpx
 
 from film2trello import csfd, http, trello
 
+
 logger = logging.getLogger("film2trello.core")
 
 

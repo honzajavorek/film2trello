@@ -7,6 +7,7 @@ import httpx
 import stamina
 from lxml import html
 
+
 logger = logging.getLogger("film2trello.http")
 
 

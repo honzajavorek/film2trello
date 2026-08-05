@@ -11,6 +11,7 @@ from PIL import Image
 
 from film2trello.http import get_transport, raise_on_error
 
+
 COLORS = {
     "20m": "blue",
     "30m": "sky",
