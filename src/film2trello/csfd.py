@@ -157,10 +157,6 @@ def parse_target_url(csfd_html: html.HtmlElement) -> str:
     return ensure_overview_url(base_url)
 
 
-def is_antibot_page(csfd_html: html.HtmlElement) -> bool:
-    return bool(csfd_html.cssselect("head script#anubis_challenge"))
-
-
 def get_parent_url(csfd_url: str) -> str:
     if match := PARENT_URL_RE.search(csfd_url):
         return (
