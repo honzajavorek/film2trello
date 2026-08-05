@@ -126,7 +126,7 @@ async def save(
                 disable_web_page_preview=True,
             )
     except Exception as exc:
-        logger.exception(exc)
+        logger.exception("Error while processing the message")
         exc_text = str(exc)
         if secrets:
             exc_text = sanitize(exc_text, secrets)
