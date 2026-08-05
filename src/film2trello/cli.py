@@ -7,7 +7,6 @@ from httpx import HTTPStatusError
 from film2trello.bot import run as run_bot
 from film2trello.core import process_inbox
 
-
 logger = logging.getLogger("film2trello.cli")
 
 

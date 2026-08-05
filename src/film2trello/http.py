@@ -1,11 +1,11 @@
-from functools import wraps
 import logging
 import random
+from functools import wraps
 from typing import Callable, Coroutine, TypedDict
-import httpx
-from lxml import html
-import stamina
 
+import httpx
+import stamina
+from lxml import html
 
 logger = logging.getLogger("film2trello.http")
 

@@ -3,7 +3,6 @@ from typing import Generator
 
 from lxml import html
 
-
 TITLE_YEAR_RE = re.compile(r"\((\d{4})\)\s*$")
 
 TITLE_SPECIAL_NAME_RE = re.compile(r"\s+\([^\)]+\snázev\)$")

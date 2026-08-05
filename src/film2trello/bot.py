@@ -1,7 +1,7 @@
 import logging
 from functools import partial
-import httpx
 
+import httpx
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -14,7 +14,6 @@ from telegram.ext import (
 from film2trello.core import process_message
 from film2trello.http import with_scraper
 from film2trello.trello import get_board_url, with_trello_api
-
 
 logger = logging.getLogger("film2trello.bot")
 

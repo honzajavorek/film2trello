@@ -1,16 +1,15 @@
 import asyncio
+import itertools
+import math
 from datetime import date
 from functools import wraps
 from io import BytesIO
-import itertools
-import math
 from typing import Callable, Coroutine, Literal
 
-from PIL import Image
 import httpx
+from PIL import Image
 
 from film2trello.http import get_transport, raise_on_error
-
 
 COLORS = {
     "20m": "blue",
