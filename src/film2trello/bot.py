@@ -73,7 +73,7 @@ async def start_command(
     if not update.message:
         raise ValueError("No message available")
     await update.message.reply_html(
-        f"Ahoj {user.mention_html()}! {help(board_id, dict(users)[user.id])}"
+        f"Ahoj {user.mention_html()}! {get_help_text(board_id, dict(users)[user.id])}"
     )
 
 
@@ -88,7 +88,7 @@ async def help_command(
         raise ValueError("No user available")
     if not update.message:
         raise ValueError("No message available")
-    await update.message.reply_html(help(board_id, dict(users)[user.id]))
+    await update.message.reply_html(get_help_text(board_id, dict(users)[user.id]))
 
 
 @with_trello_api
@@ -133,11 +133,11 @@ async def save(
         await update.message.reply_html(
             f"Stala se nějaká chyba 😢\n\n"
             f"<pre>{exc_text}</pre>\n\n"
-            f"{help(board_id, username)}"
+            f"{get_help_text(board_id, username)}"
         )
 
 
-def help(board_id: str, username: str) -> str:
+def get_help_text(board_id: str, username: str) -> str:
     return (
         f"Můžeš mi posílat odkazy na filmy z KVIFF.TV nebo ČSFD a já je budu ukládat do tohoto Trella: {get_board_url(board_id)} "
         f"Na kartičku přiřadím Trello uživatele <code>{username}</code>. "
@@ -146,7 +146,7 @@ def help(board_id: str, username: str) -> str:
     )
 
 
-def sanitize(text: str, secrets: list[str]):
+def sanitize(text: str, secrets: list[str]) -> str:
     for secret in secrets:
         text = text.replace(secret, "[SECRET]")
     return text
