@@ -239,8 +239,12 @@ def prepare_card_data(
 
 def prepare_duration_labels(durations: list[int]) -> list[dict[str, str]]:
     labels = []
+    seen = set()
     for duration in durations:
         name = get_duration_bracket(duration)
+        if name in seen:
+            continue
+        seen.add(name)
         labels.append({"name": name, "color": COLORS[name]})
     return labels
 

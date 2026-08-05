@@ -119,6 +119,12 @@ def test_prepare_duration_labels():
     ]
 
 
+def test_prepare_duration_labels_deduplicates_brackets():
+    assert list(trello.prepare_duration_labels([100, 105])) == [
+        {"name": "2h", "color": "orange"},
+    ]
+
+
 def test_get_missing_labels():
     existing_labels = [
         {"id": "...", "idBoard": "...", "name": "2.5h", "color": "red"},
