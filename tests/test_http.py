@@ -1,6 +1,9 @@
+from pathlib import Path
+
 import httpx
 import pytest
 import stamina
+from lxml import html
 
 from film2trello import http
 
@@ -59,6 +62,24 @@ async def test_retry_transport_does_not_retry_unsafe_methods():
             await client.post("https://example.com/", json={"foo": "bar"})
 
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["csfd_antibot_cs.html", "csfd_antibot_en.html"],
+)
+def test_is_antibot_page_detects_anubis_challenge(fixture_name):
+    path = Path(__file__).parent / fixture_name
+    page_html = html.fromstring(path.read_text())
+
+    assert http.is_antibot_page(page_html) is True
+
+
+def test_is_antibot_page_ignores_regular_page():
+    path = Path(__file__).parent / "csfd.html"
+    page_html = html.fromstring(path.read_text())
+
+    assert http.is_antibot_page(page_html) is False
 
 
 @pytest.mark.asyncio

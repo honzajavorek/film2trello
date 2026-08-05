@@ -104,6 +104,8 @@ BASE_HEADERS = {
 
 ANTIBOT_RETRY_ATTEMPTS = 5
 
+ANUBIS_CHALLENGE_SELECTOR = "script#anubis_challenge"
+
 
 def get_default_headers() -> dict[str, str]:
     profile = random.choice(BROWSER_PROFILES)
@@ -144,6 +146,10 @@ class AntiBotError(RuntimeError):
     pass
 
 
+def is_antibot_page(page_html: html.HtmlElement) -> bool:
+    return bool(page_html.cssselect(ANUBIS_CHALLENGE_SELECTOR))
+
+
 async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
     @stamina.retry(
         on=AntiBotError,
@@ -156,7 +162,7 @@ async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
         response = await scraper.get(url, headers=get_default_headers())
         page_url = str(response.url)
         page_html = html.fromstring(response.content)
-        if page_html.cssselect("script#anubis_challenge"):
+        if is_antibot_page(page_html):
             logger.warning("Anubis challenge (request_url=%s, url=%s)", url, page_url)
             raise AntiBotError(f"Anubis challenge (request_url={url}, url={page_url})")
         page_html.make_links_absolute(page_url)
