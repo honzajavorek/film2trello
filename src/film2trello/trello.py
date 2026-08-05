@@ -25,11 +25,11 @@ COLORS = {
 
 THUMBNAIL_SIZE = (500, 500)
 
-KVIFFTV_LABEL = dict(name="KVIFF.TV", color="black")
+KVIFFTV_LABEL = {"name": "KVIFF.TV", "color": "black"}
 
-NETFLIX_LABEL = dict(name="NETFLIX", color="black")
+NETFLIX_LABEL = {"name": "NETFLIX", "color": "black"}
 
-TVSHOW_LABEL = dict(name="SERIÁL", color="black")
+TVSHOW_LABEL = {"name": "SERIÁL", "color": "black"}
 
 AVAILABILITY_LABELS = ["KVIFF.TV", "NETFLIX", "STASH"]
 
@@ -37,7 +37,7 @@ AVAILABILITY_LABELS = ["KVIFF.TV", "NETFLIX", "STASH"]
 def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(
         base_url="https://trello.com/1/",
-        params=dict(key=key, token=token),
+        params={"key": key, "token": token},
         headers={
             "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)"
         },
@@ -113,7 +113,7 @@ async def join_card(
         user_id = (await trello_api.get(f"/members/{username}")).json()["id"]
         await trello_api.post(
             f"/cards/{card_id}/members",
-            json=dict(value=user_id),
+            json={"value": user_id},
         )
 
 
@@ -147,7 +147,7 @@ async def update_card_attachments(
 
     await asyncio.gather(
         *(
-            trello_api.post(f"/cards/{card_id}/attachments", json=dict(url=page_url))
+            trello_api.post(f"/cards/{card_id}/attachments", json={"url": page_url})
             for page_url in page_urls
         )
     )
@@ -156,7 +156,7 @@ async def update_card_attachments(
         try:
             await trello_api.post(
                 f"/cards/{card_id}/attachments",
-                files=dict(file=create_thumbnail(response.content)),
+                files={"file": create_thumbnail(response.content)},
             )
         except ValueError as exc:
             return [f"Unable to update poster: {exc}"]
@@ -168,7 +168,7 @@ async def update_card_position(
     card_id: str,
     position: int,
 ) -> None:
-    await trello_api.put(f"/cards/{card_id}/", json=dict(pos=position))
+    await trello_api.put(f"/cards/{card_id}/", json={"pos": position})
 
 
 async def get_old_cards(
@@ -178,7 +178,7 @@ async def get_old_cards(
 ) -> list[dict]:
     return (
         await trello_api.get(
-            f"/lists/{inbox_list_id}/cards", params=dict(before=str(before))
+            f"/lists/{inbox_list_id}/cards", params={"before": str(before)}
         )
     ).json()
 
@@ -190,7 +190,7 @@ async def archive_cards(
 ) -> None:
     await asyncio.gather(
         *(
-            trello_api.put(f"/cards/{card['id']}/", json=dict(idList=archive_list_id))
+            trello_api.put(f"/cards/{card['id']}/", json={"idList": archive_list_id})
             for card in cards
         )
     )
@@ -228,7 +228,7 @@ def prepare_card_data(
     move_to_top: bool = False,
     move_to_list_id: str | None = None,
 ) -> dict:
-    data = dict(name=name, desc=csfd_url)
+    data = {"name": name, "desc": csfd_url}
     if move_to_top:
         data["pos"] = "top"
     if move_to_list_id:
@@ -240,7 +240,7 @@ def prepare_duration_labels(durations: list[int]) -> list[dict[str, str]]:
     labels = []
     for duration in durations:
         name = get_duration_bracket(duration)
-        labels.append(dict(name=name, color=COLORS[name]))
+        labels.append({"name": name, "color": COLORS[name]})
     return labels
 
 
