@@ -20,7 +20,6 @@ board_id_option = click.option(
     "-b",
     "--board",
     "board_id",
-    required=True,
     help="Trello board ID",
     default="zmyDOaFL",
 )
