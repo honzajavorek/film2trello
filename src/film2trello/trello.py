@@ -155,13 +155,13 @@ async def update_card_attachments(
         )
     )
     if not has_poster(attachments) and poster_url:
-        response = await scraper.get(poster_url)
         try:
+            response = await scraper.get(poster_url)
             await trello_api.post(
                 f"/cards/{card_id}/attachments",
                 files={"file": create_thumbnail(response.content)},
             )
-        except ValueError as exc:
+        except (httpx.HTTPStatusError, ValueError) as exc:
             return [f"Unable to update poster: {exc}"]
     return []
 
