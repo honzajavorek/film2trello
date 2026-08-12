@@ -44,6 +44,40 @@ def test_parse_festival_name():
     assert csfd.parse_title(csfd_html) == "Drive My Car (2021)"
 
 
+def test_get_base_url_from_canonical():
+    csfd_html = html.fromstring(
+        '<link rel="canonical" href="https://www.csfd.cz/film/1-foo/">'
+    )
+
+    assert csfd.get_base_url(csfd_html) == "https://www.csfd.cz/film/1-foo/"
+
+
+def test_get_base_url_falls_back_to_og_url():
+    csfd_html = html.fromstring(
+        '<meta property="og:url" content="https://www.csfd.cz/film/1-foo/">'
+    )
+
+    assert csfd.get_base_url(csfd_html) == "https://www.csfd.cz/film/1-foo/"
+
+
+def test_get_base_url_skips_canonical_without_href():
+    csfd_html = html.fromstring(
+        '<html><head>'
+        '<link rel="canonical">'
+        '<meta property="og:url" content="https://www.csfd.cz/film/1-foo/">'
+        '</head></html>'
+    )
+
+    assert csfd.get_base_url(csfd_html) == "https://www.csfd.cz/film/1-foo/"
+
+
+def test_get_base_url_raises_when_missing():
+    csfd_html = html.fromstring("<html><head></head></html>")
+
+    with pytest.raises(ValueError):
+        csfd.get_base_url(csfd_html)
+
+
 def test_parse_poster_url(csfd_html):
     assert csfd.parse_poster_url(csfd_html) == (
         "https://image.pmgstatic.com/cache/resized/w420/"
