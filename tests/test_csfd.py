@@ -62,10 +62,10 @@ def test_get_base_url_falls_back_to_og_url():
 
 def test_get_base_url_skips_canonical_without_href():
     csfd_html = html.fromstring(
-        '<html><head>'
+        "<html><head>"
         '<link rel="canonical">'
         '<meta property="og:url" content="https://www.csfd.cz/film/1-foo/">'
-        '</head></html>'
+        "</head></html>"
     )
 
     assert csfd.get_base_url(csfd_html) == "https://www.csfd.cz/film/1-foo/"
