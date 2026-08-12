@@ -1,3 +1,4 @@
+import html
 import logging
 from functools import partial
 
@@ -132,7 +133,7 @@ async def save(
             exc_text = sanitize(exc_text, secrets)
         await update.message.reply_html(
             f"Stala se nějaká chyba 😢\n\n"
-            f"<pre>{exc_text}</pre>\n\n"
+            f"<pre>{html.escape(exc_text)}</pre>\n\n"
             f"{get_help_text(board_id, username)}"
         )
 
@@ -140,7 +141,7 @@ async def save(
 def get_help_text(board_id: str, username: str) -> str:
     return (
         f"Můžeš mi posílat odkazy na filmy z KVIFF.TV nebo ČSFD a já je budu ukládat do tohoto Trella: {get_board_url(board_id)} "
-        f"Na kartičku přiřadím Trello uživatele <code>{username}</code>. "
+        f"Na kartičku přiřadím Trello uživatele <code>{html.escape(username)}</code>. "
         "Pokud pošleš odkaz na seriál, uložím ti jeho první sérii. "
         "Jestli chceš zaznamenat jinou sérii, musíš poslat odkaz přímo na ni. "
     )
