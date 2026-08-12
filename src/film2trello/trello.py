@@ -5,7 +5,7 @@ from collections.abc import Callable, Coroutine
 from datetime import date
 from functools import wraps
 from io import BytesIO
-from typing import Literal
+from typing import Any, Literal
 
 import httpx
 from PIL import Image
@@ -47,9 +47,11 @@ def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
     )
 
 
-def with_trello_api(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+def with_trello_api[R](
+    fn: Callable[..., Coroutine[Any, Any, R]],
+) -> Callable[..., Coroutine[Any, Any, R]]:
     @wraps(fn)
-    async def wrapper(*args, **kwargs) -> Coroutine:
+    async def wrapper(*args, **kwargs) -> R:
         key = kwargs.pop("trello_key")
         token = kwargs.pop("trello_token")
         async with get_trello_api(key, token) as client:

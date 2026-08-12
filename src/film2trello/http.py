@@ -2,7 +2,7 @@ import logging
 import random
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import httpx
 import stamina
@@ -126,9 +126,11 @@ async def raise_on_error(response: httpx.Response) -> None:
         response.raise_for_status()
 
 
-def with_scraper(fn: Callable[..., Coroutine]) -> Callable[..., Coroutine]:
+def with_scraper[R](
+    fn: Callable[..., Coroutine[Any, Any, R]],
+) -> Callable[..., Coroutine[Any, Any, R]]:
     @wraps(fn)
-    async def wrapper(*args, **kwargs) -> Coroutine:
+    async def wrapper(*args, **kwargs) -> R:
         async with get_scraper() as client:
             return await fn(client, *args, **kwargs)
 
