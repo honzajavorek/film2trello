@@ -44,10 +44,6 @@ def get_transport() -> httpx.AsyncBaseTransport:
     return RetryTransport(httpx.AsyncHTTPTransport(http2=True))
 
 
-# Each profile is a complete, self-consistent overlay on BASE_HEADERS: it
-# carries every header that is specific to that browser. In particular the
-# Chrome/Edge client hints (Sec-Ch-Ua*) live here and not in BASE_HEADERS, so
-# the Firefox profile — which real Firefox never sends them with — stays clean.
 BROWSER_PROFILES: tuple[dict[str, str], ...] = (
     {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -97,9 +93,6 @@ BROWSER_PROFILES: tuple[dict[str, str], ...] = (
 )
 
 
-# Headers real Chrome and Firefox both send on a top-level navigation. Anything
-# specific to one browser family (notably the Sec-Ch-Ua* client hints) belongs
-# in BROWSER_PROFILES instead, so profiles never inherit foreign headers.
 BASE_HEADERS = {
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
     "Accept-Language": "cs-CZ,cs;q=0.9,en-US;q=0.8,en;q=0.7",
@@ -120,9 +113,6 @@ ANUBIS_CHALLENGE_SELECTOR = "script#anubis_challenge"
 
 def get_default_headers() -> dict[str, str]:
     profile = random.choice(BROWSER_PROFILES)
-    # A profile is a complete overlay, so a full header set is composed here in
-    # one place. The scraper client is configured with it once and every request
-    # reuses it, keeping a single consistent browser identity per client.
     return {**BASE_HEADERS, **profile}
 
 
