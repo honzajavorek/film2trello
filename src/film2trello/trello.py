@@ -38,9 +38,9 @@ AVAILABILITY_LABELS = ["KVIFF.TV", "NETFLIX", "STASH"]
 def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
     return httpx.AsyncClient(
         base_url="https://trello.com/1/",
-        params={"key": key, "token": token},
         headers={
-            "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)"
+            "Authorization": f'OAuth oauth_consumer_key="{key}", oauth_token="{token}"',
+            "User-Agent": "film2trello (+https://github.com/honzajavorek/film2trello)",
         },
         transport=get_transport(),
         event_hooks={"response": [raise_on_error]},

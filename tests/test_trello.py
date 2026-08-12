@@ -3,6 +3,20 @@ import pytest
 from film2trello import trello
 
 
+@pytest.mark.asyncio
+async def test_get_trello_api_sends_credentials_in_authorization_header():
+    key = "s3cr3t-key"
+    token = "s3cr3t-token"
+    async with trello.get_trello_api(key, token) as client:
+        params = str(client.params)
+        authorization = client.headers["Authorization"]
+
+    assert key not in params
+    assert token not in params
+    assert key in authorization
+    assert token in authorization
+
+
 def test_find_card_id_matches_title():
     assert (
         trello.find_card_id(
