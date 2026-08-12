@@ -154,9 +154,6 @@ async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
     @stamina.retry(
         on=AntiBotError,
         attempts=ANTIBOT_RETRY_ATTEMPTS,
-        # wait_initial=0.1,
-        # wait_max=1.0,
-        # wait_jitter=0.1,
     )
     async def fetch_page() -> Page:
         response = await scraper.get(url, headers=get_default_headers())
