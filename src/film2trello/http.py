@@ -92,7 +92,6 @@ BASE_HEADERS = {
     "Accept-Language": "cs-CZ,cs;q=0.9,en-US;q=0.8,en;q=0.7",
     "Accept-Encoding": "gzip, deflate, br",
     "Cache-Control": "max-age=0",
-    "Connection": "keep-alive",
     "Sec-Ch-Ua-Mobile": "?0",
     "Sec-Fetch-Dest": "document",
     "Sec-Fetch-Mode": "navigate",
