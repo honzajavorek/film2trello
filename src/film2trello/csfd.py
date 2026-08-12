@@ -36,10 +36,15 @@ def clean_alternate_title(text: str) -> str:
 
 
 def get_base_url(csfd_html: html.HtmlElement) -> str:
-    try:
-        return csfd_html.cssselect("link[rel='canonical']")[0].get("href")
-    except IndexError:
-        return csfd_html.cssselect("meta[property='og:url']")[0].get("content")
+    for selector, attribute in [
+        ("link[rel='canonical']", "href"),
+        ("meta[property='og:url']", "content"),
+    ]:
+        if (elements := csfd_html.cssselect(selector)) and (
+            url := elements[0].get(attribute)
+        ):
+            return url
+    raise ValueError("Could not find a base URL on the page")
 
 
 def ensure_overview_url(url: str) -> str:
