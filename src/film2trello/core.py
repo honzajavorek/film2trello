@@ -29,15 +29,15 @@ async def process_message(
     message_text: str,
     board_id: str,
 ) -> AsyncGenerator[str]:
+    yield f"Checking if user '{username}' is allowed to the board"
+    await trello.check_username(trello_api, board_id, username)
+
     yield "Figuring out CSFD.cz URL…"
     csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
     film = get_film(await get_csfd_pages(scraper, csfd_url))
     logger.info(f"Film:\n{pformat(film)}")
-
-    yield f"Checking if user '{username}' is allowed to the board"
-    await trello.check_username(trello_api, board_id, username)
 
     yield "Analyzing columns, assuming first is inbox and last is archive"
     lists_ids = await trello.get_working_lists_ids(trello_api, board_id)
