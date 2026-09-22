@@ -1,0 +1,37 @@
+name: scripts-fix-verify
+
+on:
+  push:
+    branches:
+      - claude/scripts-camoufox-fetch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.8.17"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Camoufox
+        run: uv run camoufox fetch
+
+      - name: Scrape a real CSFD page via Camoufox
+        run: |
+          uv run python -c "
+          import asyncio
+          from film2trello import csfd
+
+          async def main():
+              page = await csfd.get_html('https://www.csfd.cz/film/8283-posledni-skaut/prehled/')
+              print('OK, title:', csfd.parse_title(page['html']))
+
+          asyncio.run(main())
+          "
