@@ -86,7 +86,7 @@ async def process_message(
 async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
     if input_url := csfd.get_kvifftv_url(message_text):
         logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
-        response = await scraper.get(input_url)
+        response = await scraper.get(input_url, headers=http.get_default_headers())
         if csfd_url := csfd.get_csfd_url(response.text):
             logger.info(f"Found CSFD.cz URL: {csfd_url}")
             return csfd_url

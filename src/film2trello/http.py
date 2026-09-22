@@ -117,8 +117,11 @@ def get_default_headers() -> dict[str, str]:
 
 
 def get_scraper() -> httpx.AsyncClient:
+    # No default headers here: every caller rolls its own profile per request
+    # via get_default_headers(), so a client-level profile would either sit
+    # unused (get_html overrides it every time) or, on the other call sites,
+    # give every request from this client the same fingerprint.
     return httpx.AsyncClient(
-        headers=get_default_headers(),
         follow_redirects=True,
         transport=get_transport(),
         event_hooks={"response": [raise_on_error]},
@@ -162,11 +165,8 @@ async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
         attempts=ANTIBOT_RETRY_ATTEMPTS,
     )
     async def fetch_page() -> Page:
-        # A fresh profile per attempt, not just per client: if the client's
-        # profile gets Anubis-challenged, retrying with that same identity
-        # would just hit the same wall again. get_default_headers() returns a
-        # complete overlay, so it replaces the client's profile wholesale
-        # rather than mixing with it.
+        # A fresh profile per attempt: if one gets Anubis-challenged, retrying
+        # with the same identity would just hit the same wall again.
         response = await scraper.get(url, headers=get_default_headers())
         page_url = str(response.url)
         page_html = html.fromstring(response.content)
