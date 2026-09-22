@@ -1,5 +1,5 @@
 import logging
-from collections.abc import AsyncGenerator
+from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pprint import pformat
 from typing import TypedDict
@@ -19,8 +19,16 @@ logger = logging.getLogger("film2trello.core")
 # full browser solving Anubis) across bot messages and inbox runs.
 CACHE_TTL = 60 * 60 * 24 * 30 * 6
 
-film_cache = Cache(".cache/films")
-kvifftv_cache = Cache(".cache/kvifftv")
+cache = Cache(".cache")
+
+
+async def get_or_fetch[T](key: str, fetch: Callable[[], Awaitable[T]]) -> T:
+    if (value := cache.get(key)) is not None:
+        logger.info(f"Found in cache: {key}")
+        return value
+    value = await fetch()
+    cache.set(key, value, expire=CACHE_TTL)
+    return value
 
 
 class Film(TypedDict):
@@ -47,7 +55,7 @@ async def process_message(
     csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
-    film = await get_cached_film(csfd_url)
+    film = await get_film_by_url(csfd_url)
     logger.info(f"Film:\n{pformat(film)}")
 
     yield "Analyzing columns, assuming first is inbox and last is archive"
@@ -96,17 +104,17 @@ async def process_message(
 
 async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
     if input_url := csfd.get_kvifftv_url(message_text):
-        if csfd_url := kvifftv_cache.get(input_url):
-            logger.info(f"Found CSFD.cz URL in cache: {csfd_url}")
-            return csfd_url
-        logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
-        response = await scraper.get(input_url, headers=http.get_default_headers())
-        kvifftv_html = html.fromstring(response.content)
-        if csfd_url := csfd.parse_csfd_url(kvifftv_html):
-            logger.info(f"Found CSFD.cz URL: {csfd_url}")
-            kvifftv_cache.set(input_url, csfd_url, expire=CACHE_TTL)
-            return csfd_url
-        raise ValueError("Could not find CSFD.cz URL")
+
+        async def fetch_csfd_url() -> str:
+            logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
+            response = await scraper.get(input_url, headers=http.get_default_headers())
+            kvifftv_html = html.fromstring(response.content)
+            if csfd_url := csfd.parse_csfd_url(kvifftv_html):
+                logger.info(f"Found CSFD.cz URL: {csfd_url}")
+                return csfd_url
+            raise ValueError("Could not find CSFD.cz URL")
+
+        return await get_or_fetch(f"kvifftv:{input_url}", fetch_csfd_url)
     if input_url := csfd.get_csfd_url(message_text):
         logger.info(f"Detected CSFD.cz URL: {input_url}")
         return input_url
@@ -153,13 +161,11 @@ def get_film(pages: dict[str, csfd.Page]) -> Film:
     )
 
 
-async def get_cached_film(csfd_url: str) -> Film:
-    if film := film_cache.get(csfd_url):
-        logger.info(f"Found film in cache: {csfd_url}")
-        return film
-    film = get_film(await get_csfd_pages(csfd_url))
-    film_cache.set(csfd_url, film, expire=CACHE_TTL)
-    return film
+async def get_film_by_url(csfd_url: str) -> Film:
+    async def fetch_film() -> Film:
+        return get_film(await get_csfd_pages(csfd_url))
+
+    return await get_or_fetch(f"film:{csfd_url}", fetch_film)
 
 
 def get_labels(film: Film) -> list[dict[str, str]]:
@@ -200,7 +206,7 @@ async def process_inbox(
         if csfd_url := csfd.get_csfd_url(card["desc"]):
             logger.info(f"CSFD.cz URL: {csfd_url}")
 
-            film = await get_cached_film(csfd_url)
+            film = await get_film_by_url(csfd_url)
             logger.info(f"Film:\n{pformat(film)}")
 
             logger.info(f"Updating: {card['name']} {trello.get_card_url(card['id'])}")

@@ -6,13 +6,12 @@ from film2trello import core
 
 
 @pytest.fixture(autouse=True)
-def isolated_caches(tmp_path, monkeypatch):
-    monkeypatch.setattr(core, "film_cache", Cache(str(tmp_path / "films")))
-    monkeypatch.setattr(core, "kvifftv_cache", Cache(str(tmp_path / "kvifftv")))
+def isolated_cache(tmp_path, monkeypatch):
+    monkeypatch.setattr(core, "cache", Cache(str(tmp_path / "cache")))
 
 
 @pytest.mark.asyncio
-async def test_get_cached_film_skips_scraping_on_second_call(monkeypatch):
+async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
     film = core.Film(
         title="Foo (2020)",
         csfd_url="https://www.csfd.cz/film/1-foo/prehled/",
@@ -32,8 +31,8 @@ async def test_get_cached_film_skips_scraping_on_second_call(monkeypatch):
     monkeypatch.setattr(core, "get_film", lambda pages: film)
 
     url = film["csfd_url"]
-    first = await core.get_cached_film(url)
-    second = await core.get_cached_film(url)
+    first = await core.get_film_by_url(url)
+    second = await core.get_film_by_url(url)
 
     assert first == film
     assert second == film
