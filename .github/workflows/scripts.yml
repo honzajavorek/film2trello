@@ -26,9 +26,24 @@ jobs:
       - name: Install Camoufox
         run: uv run camoufox fetch
 
+      - name: Restore film cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache
+          key: film-cache-${{ github.run_id }}
+          restore-keys: |
+            film-cache-
+
       - name: Process Inbox
         run: uv run film2trello inbox
         env:
           TRELLO_TOKEN: ${{ secrets.TRELLO_TOKEN }}
           TRELLO_KEY: ${{ secrets.TRELLO_KEY }}
           TRELLO_BOARD: ${{ secrets.TRELLO_BOARD }}
+
+      - name: Save film cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache
+          key: film-cache-${{ github.run_id }}
