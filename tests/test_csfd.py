@@ -132,6 +132,19 @@ def test_parse_kvifftv_url_missing(csfd_html):
     assert csfd.parse_kvifftv_url(csfd_html) is None
 
 
+def test_parse_csfd_url():
+    path = Path(__file__).parent / "kvifftv.html"
+    kvifftv_html = html.fromstring(path.read_text())
+
+    assert csfd.parse_csfd_url(kvifftv_html) == "https://www.csfd.cz/film/988751"
+
+
+def test_parse_csfd_url_missing():
+    kvifftv_html = html.fromstring("<html><body>no link here</body></html>")
+
+    assert csfd.parse_csfd_url(kvifftv_html) is None
+
+
 @pytest.mark.parametrize(
     "filename, expected",
     (

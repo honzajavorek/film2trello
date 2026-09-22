@@ -126,6 +126,13 @@ def parse_netflix_url(csfd_html: html.HtmlElement) -> str | None:
         return None
 
 
+def parse_csfd_url(kvifftv_html: html.HtmlElement) -> str | None:
+    try:
+        return kvifftv_html.cssselect('[href*="csfd.cz/film/"]')[0].get("href")
+    except IndexError:
+        return None
+
+
 def parse_target_url(csfd_html: html.HtmlElement) -> str:
     base_url = get_base_url(csfd_html)
     csfd_html.make_links_absolute(base_url)
