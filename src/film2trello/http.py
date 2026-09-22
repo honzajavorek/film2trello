@@ -19,15 +19,23 @@ class RateLimitedError(Exception):
 class RetryTransport(httpx.AsyncBaseTransport):
     """Retries safe requests that fail with transport-level errors such as
     timeouts (incl. ReadTimeout) or connection resets, and retries a 429
-    response for any method. A 429 means the server rejected the request
-    before ever processing it, so unlike a timed-out POST/PUT (which may
-    have already reached the server), retrying it can't duplicate a write.
+    response for GET/PUT. Every PUT this codebase sends replaces a resource
+    with an absolute value (never increments or appends), so replaying it is
+    a no-op whether or not the original request was already processed -
+    unlike POST (e.g. creating a card), which isn't idempotent, and Trello
+    doesn't document whether a 429 can follow a write it already committed.
+    So a 429 on POST is left to propagate rather than risk a duplicate.
     """
 
     # Only safe (idempotent) methods are replayed on a transport error. A
     # timed-out POST/PUT may have already reached the server, so retrying
     # it could duplicate a write.
     SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+
+    # 429 is retried for a wider set: PUT is included because every PUT this
+    # codebase sends is idempotent (see class docstring), so it's safe here
+    # even though it isn't for a transport error above.
+    RATE_LIMITED_RETRY_METHODS = SAFE_METHODS | {"PUT"}
 
     def __init__(
         self,
@@ -47,7 +55,10 @@ class RetryTransport(httpx.AsyncBaseTransport):
                 )(self.transport.handle_async_request)
                 response = await retry_transport_errors(request)
 
-            if response.status_code == 429:
+            if (
+                response.status_code == 429
+                and request.method in self.RATE_LIMITED_RETRY_METHODS
+            ):
                 await response.aread()
                 raise RateLimitedError(response)
             return response

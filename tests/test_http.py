@@ -96,9 +96,9 @@ async def test_retry_transport_retries_rate_limited_get():
 
 
 @pytest.mark.asyncio
-async def test_retry_transport_retries_rate_limited_unsafe_method():
-    # Unlike a transport error, a 429 means the server never processed the
-    # request, so retrying a write (POST/PUT) can't duplicate it.
+async def test_retry_transport_retries_rate_limited_put():
+    # Every PUT this codebase sends is idempotent (absolute values, never
+    # increments), so it's safe to retry even though POST isn't.
     calls = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -109,10 +109,29 @@ async def test_retry_transport_retries_rate_limited_unsafe_method():
 
     transport = http.RetryTransport(httpx.MockTransport(handler))
     async with httpx.AsyncClient(transport=transport) as client:
-        response = await client.post("https://example.com/", json={"foo": "bar"})
+        response = await client.put("https://example.com/", json={"foo": "bar"})
 
     assert response.status_code == 200
     assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_does_not_retry_rate_limited_post():
+    # POST isn't idempotent (e.g. creating a card), and Trello doesn't
+    # document whether a 429 can follow a write it already committed, so
+    # this is left to propagate rather than risk a duplicate.
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(429, text="rate limited")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.post("https://example.com/", json={"foo": "bar"})
+
+    assert response.status_code == 429
+    assert len(calls) == 1
 
 
 @pytest.mark.asyncio
