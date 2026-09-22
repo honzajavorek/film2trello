@@ -23,7 +23,7 @@ async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
     )
     calls = []
 
-    async def fake_get_csfd_pages(csfd_url):
+    async def fake_get_csfd_pages(csfd_url, session):
         calls.append(csfd_url)
         return {}
 
@@ -31,8 +31,9 @@ async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
     monkeypatch.setattr(core, "get_film", lambda pages: film)
 
     url = film["csfd_url"]
-    first = await core.get_film_by_url(url)
-    second = await core.get_film_by_url(url)
+    session = object()
+    first = await core.get_film_by_url(url, session)
+    second = await core.get_film_by_url(url, session)
 
     assert first == film
     assert second == film

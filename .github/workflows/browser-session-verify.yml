@@ -1,0 +1,54 @@
+name: browser-session-verify
+
+on:
+  push:
+    branches:
+      - claude/shared-browser-session
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.8.17"
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Camoufox
+        run: uv run camoufox fetch
+
+      - name: Verify Anubis cookie is reused within one browser session
+        run: |
+          uv run python -c "
+          import asyncio
+          import time
+          from film2trello import csfd
+
+          async def main():
+              async with csfd.browser_session() as session:
+                  t0 = time.monotonic()
+                  page1 = await session.get_html('https://www.csfd.cz/film/8283-posledni-skaut/prehled/')
+                  t1 = time.monotonic()
+                  print(f'First fetch (fresh session): {t1 - t0:.2f}s, title={csfd.parse_title(page1[\"html\"])}')
+
+                  cookies = await session._browser.contexts[0].cookies()
+                  anubis_cookies = [c['name'] for c in cookies if 'anubis' in c['name'].lower()]
+                  print(f'Cookies after first fetch: {anubis_cookies}')
+                  assert anubis_cookies, 'expected an Anubis auth cookie to be set after solving the challenge'
+
+                  t2 = time.monotonic()
+                  page2 = await session.get_html('https://www.csfd.cz/film/1-forrest-gump/prehled/')
+                  t3 = time.monotonic()
+                  print(f'Second fetch (same session, different film): {t3 - t2:.2f}s, title={csfd.parse_title(page2[\"html\"])}')
+
+                  assert (t3 - t2) < (t1 - t0) / 2, 'expected the second fetch to skip the challenge and be much faster'
+                  print('OK: cookie reuse confirmed')
+
+          asyncio.run(main())
+          "
