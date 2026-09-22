@@ -83,6 +83,7 @@ async def get_html(url: str, **kwargs: Any) -> Page:
     for _ in range(FETCH_ATTEMPTS):
         async with AsyncCamoufox(headless=True, **LAUNCH_OPTIONS) as browser:
             page = await browser.new_page()
+            kwargs.setdefault("wait_until", "domcontentloaded")
             await page.goto(url, **kwargs)
             try:
                 await _pass_challenge(page)
