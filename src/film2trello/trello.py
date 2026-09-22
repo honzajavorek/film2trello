@@ -10,7 +10,7 @@ from typing import Any, Literal
 import httpx
 from PIL import Image
 
-from film2trello.http import get_transport, raise_on_error
+from film2trello.http import get_default_headers, get_transport, raise_on_error
 
 
 COLORS = {
@@ -156,7 +156,7 @@ async def update_card_attachments(
     )
     if not has_poster(attachments) and poster_url:
         try:
-            response = await scraper.get(poster_url)
+            response = await scraper.get(poster_url, headers=get_default_headers())
             await trello_api.post(
                 f"/cards/{card_id}/attachments",
                 files={"file": create_thumbnail(response.content)},
