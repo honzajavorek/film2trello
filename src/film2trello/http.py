@@ -111,14 +111,6 @@ def get_default_headers() -> dict[str, str]:
 
 
 def get_scraper() -> httpx.AsyncClient:
-    """Build a scraper client with no default profile headers.
-
-    Its only remaining caller (downloading a card's poster image) rolls its
-    own browser profile per request via get_default_headers(); a
-    client-level profile here would sit unused. Page fetches that need to
-    clear Anubis's challenge go through anubis.get_html() instead, which
-    uses Camoufox rather than this client.
-    """
     return httpx.AsyncClient(
         follow_redirects=True,
         transport=get_transport(),
