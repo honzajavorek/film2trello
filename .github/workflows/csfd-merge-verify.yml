@@ -47,7 +47,8 @@ jobs:
               print('=== plain httpx GET for KVIFF.TV ===')
               async with httpx.AsyncClient(follow_redirects=True) as scraper:
                   response = await scraper.get(
-                      'https://kviff.tv/katalog/', headers=http.get_default_headers()
+                      'https://kviff.tv/katalog/smolny-pich-aneb-pitomy-porno',
+                      headers=http.get_default_headers(),
                   )
                   page_html = html.fromstring(response.content)
                   print('status:', response.status_code)
