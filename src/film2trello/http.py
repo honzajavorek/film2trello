@@ -162,7 +162,12 @@ async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
         attempts=ANTIBOT_RETRY_ATTEMPTS,
     )
     async def fetch_page() -> Page:
-        response = await scraper.get(url)
+        # A fresh profile per attempt, not just per client: if the client's
+        # profile gets Anubis-challenged, retrying with that same identity
+        # would just hit the same wall again. get_default_headers() returns a
+        # complete overlay, so it replaces the client's profile wholesale
+        # rather than mixing with it.
+        response = await scraper.get(url, headers=get_default_headers())
         page_url = str(response.url)
         page_html = html.fromstring(response.content)
         if is_antibot_page(page_html):
