@@ -23,6 +23,9 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --frozen
 
+      - name: Install Camoufox
+        run: uv run camoufox fetch
+
       - name: Process Inbox
         run: uv run film2trello inbox
         env:
