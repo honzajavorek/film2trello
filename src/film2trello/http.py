@@ -11,12 +11,22 @@ import stamina
 logger = logging.getLogger("film2trello.http")
 
 
+class RateLimitedError(Exception):
+    def __init__(self, response: httpx.Response) -> None:
+        self.response = response
+
+
 class RetryTransport(httpx.AsyncBaseTransport):
     """Retries safe requests that fail with transport-level errors such as
-    timeouts (incl. ReadTimeout) or connection resets."""
+    timeouts (incl. ReadTimeout) or connection resets, and retries a 429
+    response for any method. A 429 means the server rejected the request
+    before ever processing it, so unlike a timed-out POST/PUT (which may
+    have already reached the server), retrying it can't duplicate a write.
+    """
 
-    # Only safe (idempotent) methods are replayed. A timed-out POST/PUT may
-    # have already reached the server, so retrying it could duplicate a write.
+    # Only safe (idempotent) methods are replayed on a transport error. A
+    # timed-out POST/PUT may have already reached the server, so retrying
+    # it could duplicate a write.
     SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
 
     def __init__(
@@ -28,12 +38,28 @@ class RetryTransport(httpx.AsyncBaseTransport):
         self.attempts = attempts
 
     async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        if request.method not in self.SAFE_METHODS:
-            return await self.transport.handle_async_request(request)
-        send = stamina.retry(on=httpx.TransportError, attempts=self.attempts)(
-            self.transport.handle_async_request
-        )
-        return await send(request)
+        async def send() -> httpx.Response:
+            if request.method not in self.SAFE_METHODS:
+                response = await self.transport.handle_async_request(request)
+            else:
+                retry_transport_errors = stamina.retry(
+                    on=httpx.TransportError, attempts=self.attempts
+                )(self.transport.handle_async_request)
+                response = await retry_transport_errors(request)
+
+            if response.status_code == 429:
+                await response.aread()
+                raise RateLimitedError(response)
+            return response
+
+        try:
+            retry_rate_limits = stamina.retry(on=RateLimitedError)(send)
+            return await retry_rate_limits()
+        except RateLimitedError as exc:
+            # Retries exhausted; hand back the still-429 response so callers
+            # see the same httpx.HTTPStatusError they'd get without any of
+            # this retrying (e.g. via the raise_on_error event hook).
+            return exc.response
 
     async def aclose(self) -> None:
         await self.transport.aclose()

@@ -75,3 +75,57 @@ async def test_retry_transport_does_not_retry_success():
 
     assert response.status_code == 200
     assert len(calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_retries_rate_limited_get():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if len(calls) < 3:
+            return httpx.Response(429, text="rate limited")
+        return httpx.Response(200, text="ok")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.get("https://example.com/")
+
+    assert response.status_code == 200
+    assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_retries_rate_limited_unsafe_method():
+    # Unlike a transport error, a 429 means the server never processed the
+    # request, so retrying a write (POST/PUT) can't duplicate it.
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if len(calls) < 3:
+            return httpx.Response(429, text="rate limited")
+        return httpx.Response(200, text="ok")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.post("https://example.com/", json={"foo": "bar"})
+
+    assert response.status_code == 200
+    assert len(calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_retry_transport_gives_up_and_returns_last_rate_limited_response():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        return httpx.Response(429, text="rate limited")
+
+    transport = http.RetryTransport(httpx.MockTransport(handler))
+    async with httpx.AsyncClient(transport=transport) as client:
+        response = await client.get("https://example.com/")
+
+    assert response.status_code == 429
+    assert len(calls) > 1
