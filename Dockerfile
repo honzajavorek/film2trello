@@ -15,7 +15,9 @@ WORKDIR /app
 # that needs root, so this has to happen before switching to the app user.
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
-RUN uv run playwright install-deps firefox
+# `playwright` directly, not `uv run playwright`: uv run re-syncs the
+# project first, which fails this early since src/ isn't copied in yet.
+RUN playwright install-deps firefox
 
 # Run as a dedicated non-root user from here on
 RUN useradd --create-home --uid 1000 app
@@ -27,6 +29,6 @@ RUN uv sync --frozen --no-dev
 
 # Downloads Camoufox's patched Firefox build into the app user's own cache
 # dir, since that's the user the app also runs as (see CMD below).
-RUN uv run camoufox fetch
+RUN camoufox fetch
 
 CMD ["film2trello", "bot"]
