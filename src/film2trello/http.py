@@ -2,11 +2,10 @@ import logging
 import random
 from collections.abc import Callable, Coroutine
 from functools import wraps
-from typing import Any, TypedDict
+from typing import Any
 
 import httpx
 import stamina
-from lxml import html
 
 
 logger = logging.getLogger("film2trello.http")
@@ -106,11 +105,6 @@ BASE_HEADERS = {
 }
 
 
-ANTIBOT_RETRY_ATTEMPTS = 5
-
-ANUBIS_CHALLENGE_SELECTOR = "script#anubis_challenge"
-
-
 def get_default_headers() -> dict[str, str]:
     profile = random.choice(BROWSER_PROFILES)
     return {**BASE_HEADERS, **profile}
@@ -119,10 +113,11 @@ def get_default_headers() -> dict[str, str]:
 def get_scraper() -> httpx.AsyncClient:
     """Build a scraper client with no default profile headers.
 
-    Every caller rolls its own browser profile per request via
-    get_default_headers(); a client-level profile here would either sit
-    unused (get_html() overrides it on every request) or, on the other call
-    sites, give every request from this client the same fingerprint.
+    Its only remaining caller (downloading a card's poster image) rolls its
+    own browser profile per request via get_default_headers(); a
+    client-level profile here would sit unused. Page fetches that need to
+    clear Anubis's challenge go through anubis.get_html() instead, which
+    uses Camoufox rather than this client.
     """
     return httpx.AsyncClient(
         follow_redirects=True,
@@ -146,40 +141,3 @@ def with_scraper[R](
             return await fn(client, *args, **kwargs)
 
     return wrapper
-
-
-class Page(TypedDict):
-    request_url: str
-    url: str
-    html: html.HtmlElement
-
-
-class AntiBotError(RuntimeError):
-    pass
-
-
-def is_antibot_page(page_html: html.HtmlElement) -> bool:
-    return bool(page_html.cssselect(ANUBIS_CHALLENGE_SELECTOR))
-
-
-async def get_html(scraper: httpx.AsyncClient, url: str) -> Page:
-    @stamina.retry(
-        on=AntiBotError,
-        attempts=ANTIBOT_RETRY_ATTEMPTS,
-    )
-    async def fetch_page() -> Page:
-        """Fetch url with a fresh browser profile on every attempt.
-
-        A profile that gets Anubis-challenged once would hit the same wall
-        again on retry if it were reused, so each attempt rolls its own.
-        """
-        response = await scraper.get(url, headers=get_default_headers())
-        page_url = str(response.url)
-        page_html = html.fromstring(response.content)
-        if is_antibot_page(page_html):
-            logger.warning("Anubis challenge (request_url=%s, url=%s)", url, page_url)
-            raise AntiBotError(f"Anubis challenge (request_url={url}, url={page_url})")
-        page_html.make_links_absolute(page_url)
-        return Page(request_url=url, url=page_url, html=page_html)
-
-    return await fetch_page()
