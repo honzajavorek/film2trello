@@ -24,7 +24,22 @@ jobs:
         run: uv sync --frozen
 
       - name: Install Camoufox
-        run: uv run camoufox fetch
+        # `camoufox fetch` has occasionally reported success without
+        # actually leaving a working install (finishes in ~2s instead of
+        # the normal ~15-20s, then the next Camoufox launch fails with
+        # CamoufoxNotInstalled). Verify the same way camoufox itself does
+        # before trusting it, and retry if it didn't take.
+        run: |
+          for attempt in 1 2 3; do
+            uv run camoufox fetch
+            if uv run python -c "from camoufox.pkgman import installed_verstr; installed_verstr()"; then
+              exit 0
+            fi
+            echo "camoufox fetch left no working install (attempt $attempt/3), retrying..."
+            sleep 5
+          done
+          echo "camoufox fetch failed to leave a working install after 3 attempts"
+          exit 1
 
       - name: Restore film cache
         uses: actions/cache/restore@v6

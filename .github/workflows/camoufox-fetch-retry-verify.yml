@@ -1,0 +1,49 @@
+name: camoufox-fetch-retry-verify
+
+on:
+  push:
+    branches:
+      - claude/camoufox-fetch-retry
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.8.17"
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Camoufox
+        run: |
+          for attempt in 1 2 3; do
+            uv run camoufox fetch
+            if uv run python -c "from camoufox.pkgman import installed_verstr; installed_verstr()"; then
+              exit 0
+            fi
+            echo "camoufox fetch left no working install (attempt $attempt/3), retrying..."
+            sleep 5
+          done
+          echo "camoufox fetch failed to leave a working install after 3 attempts"
+          exit 1
+
+      - name: Actually launch Camoufox as a sanity check
+        run: |
+          uv run python -c "
+          import asyncio
+          from film2trello import csfd
+
+          async def main():
+              async with csfd.browser_session() as session:
+                  page = await session.get_html('https://www.csfd.cz/film/8283-posledni-skaut/prehled/')
+                  print('OK, title:', csfd.parse_title(page['html']))
+
+          asyncio.run(main())
+          "
