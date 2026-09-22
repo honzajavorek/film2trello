@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
@@ -23,11 +24,11 @@ cache = Cache(".cache")
 
 
 async def get_or_fetch[T](key: str, fetch: Callable[[], Awaitable[T]]) -> T:
-    if (value := cache.get(key)) is not None:
+    if (value := await asyncio.to_thread(cache.get, key)) is not None:
         logger.info(f"Found in cache: {key}")
         return value
     value = await fetch()
-    cache.set(key, value, expire=CACHE_TTL)
+    await asyncio.to_thread(cache.set, key, value, expire=CACHE_TTL)
     return value
 
 
