@@ -56,7 +56,8 @@ async def process_message(
     csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
-    film = await get_film_by_url(csfd_url)
+    async with csfd.browser_session() as session:
+        film = await get_film_by_url(csfd_url, session)
     logger.info(f"Film:\n{pformat(film)}")
 
     yield "Analyzing columns, assuming first is inbox and last is archive"
@@ -122,10 +123,12 @@ async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
     raise ValueError("Could not find a valid film URL")
 
 
-async def get_csfd_pages(csfd_url: str) -> dict[str, csfd.Page]:
+async def get_csfd_pages(
+    csfd_url: str, session: csfd.BrowserSession
+) -> dict[str, csfd.Page]:
     urls = {}
 
-    csfd_page = await csfd.get_html(csfd_url)
+    csfd_page = await session.get_html(csfd_url)
     urls[csfd_page["request_url"]] = urls[csfd_page["url"]] = csfd_page
 
     target_url = csfd.parse_target_url(csfd_page["html"])
@@ -133,7 +136,7 @@ async def get_csfd_pages(csfd_url: str) -> dict[str, csfd.Page]:
         target_page = urls[target_url]
     except KeyError:
         logger.info(f"Different target URL, scraping: {target_url}")
-        target_page = await csfd.get_html(target_url)
+        target_page = await session.get_html(target_url)
         urls[target_page["request_url"]] = urls[target_page["url"]] = target_page
 
     parent_url = csfd.get_parent_url(csfd_url)
@@ -141,7 +144,7 @@ async def get_csfd_pages(csfd_url: str) -> dict[str, csfd.Page]:
         parent_page = urls[parent_url]
     except KeyError:
         logger.info(f"Different parent URL, scraping: {parent_url}")
-        parent_page = await csfd.get_html(parent_url)
+        parent_page = await session.get_html(parent_url)
         urls[parent_page["request_url"]] = urls[parent_page["url"]] = parent_page
 
     return {"target": target_page, "parent": parent_page}
@@ -162,9 +165,9 @@ def get_film(pages: dict[str, csfd.Page]) -> Film:
     )
 
 
-async def get_film_by_url(csfd_url: str) -> Film:
+async def get_film_by_url(csfd_url: str, session: csfd.BrowserSession) -> Film:
     async def fetch_film() -> Film:
-        return get_film(await get_csfd_pages(csfd_url))
+        return get_film(await get_csfd_pages(csfd_url, session))
 
     return await get_or_fetch(f"film:{csfd_url}", fetch_film)
 
@@ -202,36 +205,39 @@ async def process_inbox(
     index = []
 
     cards = await trello.get_cards(trello_api, [inbox_list_id])
-    for card in cards:
-        logger.info(f"Processing: {card['name']} {trello.get_card_url(card['id'])}")
-        if csfd_url := csfd.get_csfd_url(card["desc"]):
-            logger.info(f"CSFD.cz URL: {csfd_url}")
+    async with csfd.browser_session() as session:
+        for card in cards:
+            logger.info(f"Processing: {card['name']} {trello.get_card_url(card['id'])}")
+            if csfd_url := csfd.get_csfd_url(card["desc"]):
+                logger.info(f"CSFD.cz URL: {csfd_url}")
 
-            film = await get_film_by_url(csfd_url)
-            logger.info(f"Film:\n{pformat(film)}")
+                film = await get_film_by_url(csfd_url, session)
+                logger.info(f"Film:\n{pformat(film)}")
 
-            logger.info(f"Updating: {card['name']} {trello.get_card_url(card['id'])}")
-            card_data = trello.prepare_card_data(film["title"], film["csfd_url"])
-            await trello.update_card(trello_api, card["id"], card_data)
+                logger.info(
+                    f"Updating: {card['name']} {trello.get_card_url(card['id'])}"
+                )
+                card_data = trello.prepare_card_data(film["title"], film["csfd_url"])
+                await trello.update_card(trello_api, card["id"], card_data)
 
-            labels = get_labels(film)
-            await trello.update_card_labels(trello_api, card["id"], labels)
+                labels = get_labels(film)
+                await trello.update_card_labels(trello_api, card["id"], labels)
 
-            page_urls = [csfd_url, film["kvifftv_url"], film["netflix_url"]]
-            errors = await trello.update_card_attachments(
-                trello_api,
-                scraper,
-                card["id"],
-                list(filter(None, page_urls)),
-                film.get("poster_url"),
-            )
-            for error in errors:
-                logger.error(error)
+                page_urls = [csfd_url, film["kvifftv_url"], film["netflix_url"]]
+                errors = await trello.update_card_attachments(
+                    trello_api,
+                    scraper,
+                    card["id"],
+                    list(filter(None, page_urls)),
+                    film.get("poster_url"),
+                )
+                for error in errors:
+                    logger.error(error)
 
-            index.append((card, film))
-            logger.info(f"Done! {trello.get_card_url(card['id'])}")
-        else:
-            logger.info("Card description doesn't contain CSFD.cz URL")
+                index.append((card, film))
+                logger.info(f"Done! {trello.get_card_url(card['id'])}")
+            else:
+                logger.info("Card description doesn't contain CSFD.cz URL")
 
     if sort_cards:
         logger.info("Sorting cards")

@@ -1,12 +1,13 @@
 import logging
 import re
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
+from contextlib import asynccontextmanager
 from typing import Any, TypedDict
 
 from camoufox import DefaultAddons
 from camoufox.async_api import AsyncCamoufox
 from lxml import html
-from playwright.async_api import Page as PlaywrightPage
+from playwright.async_api import Browser as PlaywrightBrowser, Page as PlaywrightPage
 
 
 logger = logging.getLogger("film2trello.csfd")
@@ -249,17 +250,33 @@ async def _pass_challenge(page: PlaywrightPage, timeout: float = 60000) -> None:
         raise DeniedError(body.strip().splitlines()[0] if body.strip() else "denied")
 
 
-async def get_html(url: str, **kwargs: Any) -> Page:
-    """Fetch a page's HTML via Camoufox.
+class BrowserSession:
+    """A Camoufox browser kept open across multiple fetches.
 
-    Retries with a fresh browser session (and so a fresh fingerprint) if
-    Anubis denies the request outright rather than offering a challenge to
-    solve, since that isn't recoverable within the same session.
+    Anubis sets an auth cookie once a challenge is solved, so reusing one
+    browser (and its cookie jar) across many pages skips the puzzle after
+    the first solve instead of paying it on every single fetch.
     """
-    error: DeniedError | None = None
-    for _ in range(FETCH_ATTEMPTS):
-        async with AsyncCamoufox(headless=True, **LAUNCH_OPTIONS) as browser:
-            page = await browser.new_page()
+
+    def __init__(self) -> None:
+        self._camoufox: AsyncCamoufox | None = None
+        self._browser: PlaywrightBrowser | None = None
+
+    async def open(self) -> None:
+        self._camoufox = AsyncCamoufox(headless=True, **LAUNCH_OPTIONS)
+        self._browser = await self._camoufox.__aenter__()
+
+    async def close(self) -> None:
+        if self._camoufox is not None:
+            await self._camoufox.__aexit__(None, None, None)
+        self._camoufox = None
+        self._browser = None
+
+    async def get_html(self, url: str, **kwargs: Any) -> Page:
+        error: DeniedError | None = None
+        for _ in range(FETCH_ATTEMPTS):
+            assert self._browser is not None, "call open() first"
+            page = await self._browser.new_page()
             kwargs.setdefault("wait_until", "domcontentloaded")
             await page.goto(url, **kwargs)
             try:
@@ -269,6 +286,20 @@ async def get_html(url: str, **kwargs: Any) -> Page:
                 page_html.make_links_absolute(page_url)
                 return Page(request_url=url, url=page_url, html=page_html)
             except DeniedError as exc:
-                logger.warning("Denied, retrying with a fresh session: %s", exc)
+                # Not recoverable within the same session - restart with a
+                # fresh browser, and so a fresh fingerprint and cookie jar.
+                logger.warning("Denied, restarting with a fresh session: %s", exc)
                 error = exc
-    raise error
+                await self.close()
+                await self.open()
+        raise error
+
+
+@asynccontextmanager
+async def browser_session() -> AsyncGenerator[BrowserSession]:
+    session = BrowserSession()
+    await session.open()
+    try:
+        yield session
+    finally:
+        await session.close()
