@@ -5,8 +5,9 @@ from pprint import pformat
 from typing import TypedDict
 
 import httpx
+from lxml import html
 
-from film2trello import anubis, csfd, http, trello
+from film2trello import csfd, http, trello
 
 
 logger = logging.getLogger("film2trello.core")
@@ -33,7 +34,7 @@ async def process_message(
     await trello.check_username(trello_api, board_id, username)
 
     yield "Figuring out CSFD.cz URL…"
-    csfd_url = await get_csfd_url(message_text)
+    csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
     film = get_film(await get_csfd_pages(csfd_url))
@@ -83,11 +84,13 @@ async def process_message(
     yield f"Done! This is your card: {trello.get_card_url(card_id)}"
 
 
-async def get_csfd_url(message_text: str) -> str:
+async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
     if input_url := csfd.get_kvifftv_url(message_text):
         logger.info(f"Detected KVIFF.TV URL, scraping: {input_url}")
-        kvifftv_page = await anubis.get_html(input_url)
-        if csfd_url := csfd.parse_csfd_url(kvifftv_page["html"]):
+        response = await scraper.get(input_url, headers=http.get_default_headers())
+        kvifftv_html = html.fromstring(response.content)
+        kvifftv_html.make_links_absolute(str(response.url))
+        if csfd_url := csfd.parse_csfd_url(kvifftv_html):
             logger.info(f"Found CSFD.cz URL: {csfd_url}")
             return csfd_url
         raise ValueError("Could not find CSFD.cz URL")
@@ -97,10 +100,10 @@ async def get_csfd_url(message_text: str) -> str:
     raise ValueError("Could not find a valid film URL")
 
 
-async def get_csfd_pages(csfd_url: str) -> dict[str, anubis.Page]:
+async def get_csfd_pages(csfd_url: str) -> dict[str, csfd.Page]:
     urls = {}
 
-    csfd_page = await anubis.get_html(csfd_url)
+    csfd_page = await csfd.get_html(csfd_url)
     urls[csfd_page["request_url"]] = urls[csfd_page["url"]] = csfd_page
 
     target_url = csfd.parse_target_url(csfd_page["html"])
@@ -108,7 +111,7 @@ async def get_csfd_pages(csfd_url: str) -> dict[str, anubis.Page]:
         target_page = urls[target_url]
     except KeyError:
         logger.info(f"Different target URL, scraping: {target_url}")
-        target_page = await anubis.get_html(target_url)
+        target_page = await csfd.get_html(target_url)
         urls[target_page["request_url"]] = urls[target_page["url"]] = target_page
 
     parent_url = csfd.get_parent_url(csfd_url)
@@ -116,13 +119,13 @@ async def get_csfd_pages(csfd_url: str) -> dict[str, anubis.Page]:
         parent_page = urls[parent_url]
     except KeyError:
         logger.info(f"Different parent URL, scraping: {parent_url}")
-        parent_page = await anubis.get_html(parent_url)
+        parent_page = await csfd.get_html(parent_url)
         urls[parent_page["request_url"]] = urls[parent_page["url"]] = parent_page
 
     return {"target": target_page, "parent": parent_page}
 
 
-def get_film(pages: dict[str, anubis.Page]) -> Film:
+def get_film(pages: dict[str, csfd.Page]) -> Film:
     return Film(
         csfd_url=pages["target"]["url"],
         title=csfd.parse_title(pages["target"]["html"]),

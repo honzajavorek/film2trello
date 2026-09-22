@@ -1,0 +1,63 @@
+name: csfd-merge-verify
+
+# Throwaway: verifies csfd.py still works after merging anubis.py into it,
+# and that plain httpx (no Camoufox) is enough for KVIFF.TV as the review
+# claimed. Delete once confirmed.
+
+on:
+  push:
+    branches: [claude/camoufox-anubis-fix]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.8.17"
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Camoufox
+        run: uv run camoufox fetch
+
+      - name: Diagnose
+        run: |
+          uv run python -c "
+          import asyncio
+          import httpx
+          from lxml import html
+          from film2trello import csfd, http
+
+          async def check_csfd():
+              print('=== csfd.get_html (Camoufox) ===')
+              page = await csfd.get_html('https://www.csfd.cz/film/2358-vecerni-skola/')
+              title = page['html'].cssselect('title')
+              print('title:', title[0].text_content().strip() if title else None)
+              print('is_antibot_page:', csfd.is_antibot_page(page['html']))
+
+          async def check_kviff():
+              print('=== plain httpx GET for KVIFF.TV ===')
+              async with httpx.AsyncClient(follow_redirects=True) as scraper:
+                  response = await scraper.get(
+                      'https://kviff.tv/katalog/', headers=http.get_default_headers()
+                  )
+                  page_html = html.fromstring(response.content)
+                  print('status:', response.status_code)
+                  title = page_html.cssselect('title')
+                  print('title:', title[0].text_content().strip() if title else None)
+                  print('is_antibot_page:', csfd.is_antibot_page(page_html))
+
+          async def main():
+              await check_csfd()
+              await check_kviff()
+
+          asyncio.run(main())
+          "

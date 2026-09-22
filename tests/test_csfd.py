@@ -217,3 +217,18 @@ def test_parse_is_tvshow_true(filename, expected):
     csfd_html = html.fromstring(path.read_text())
 
     assert csfd.parse_is_tvshow(csfd_html) is expected
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["csfd_antibot_cs.html", "csfd_antibot_en.html"],
+)
+def test_is_antibot_page_detects_anubis_challenge(fixture_name):
+    path = Path(__file__).parent / fixture_name
+    page_html = html.fromstring(path.read_text())
+
+    assert csfd.is_antibot_page(page_html) is True
+
+
+def test_is_antibot_page_ignores_regular_page(csfd_html):
+    assert csfd.is_antibot_page(csfd_html) is False
