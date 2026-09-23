@@ -24,11 +24,15 @@ jobs:
         run: uv sync --frozen
 
       - name: Install Camoufox
-        # `camoufox fetch` has occasionally reported success without
-        # actually leaving a working install (finishes in ~2s instead of
-        # the normal ~15-20s, then the next Camoufox launch fails with
-        # CamoufoxNotInstalled). Verify the same way camoufox itself does
-        # before trusting it, and retry if it didn't take.
+        # `camoufox fetch` lists releases from 3 GitHub repos unauthenticated
+        # by default; GitHub's 60 req/hour anonymous limit is routinely
+        # exhausted on shared Actions runner IPs. When every repo 403s,
+        # camoufox's own fetch() prints an error but does a bare `return`
+        # (no sys.exit), so the step exits 0 having installed nothing - the
+        # actual failure only surfaces later as CamoufoxNotInstalled, deep
+        # inside Process Inbox. GITHUB_TOKEN raises the limit to 5000/hour;
+        # the verify+retry stays as a safety net for anything else that
+        # slips through the same silent-success gap.
         run: |
           for attempt in 1 2 3; do
             uv run camoufox fetch
@@ -40,6 +44,8 @@ jobs:
           done
           echo "camoufox fetch failed to leave a working install after 3 attempts"
           exit 1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Restore film cache
         uses: actions/cache/restore@v6
