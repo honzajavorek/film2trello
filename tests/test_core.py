@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
@@ -94,26 +95,22 @@ async def test_process_message_preserves_card_steps(
     monkeypatch: pytest.MonkeyPatch, film_session: None, film: core.Film, existing: bool
 ) -> None:
     card = {"id": "old", "name": film["title"], "desc": film["csfd_url"]}
-    monkeypatch.setattr(core.trello, "check_username", AsyncMock())
-    monkeypatch.setattr(
-        core.trello,
-        "get_working_lists_ids",
-        AsyncMock(return_value=["inbox", "archive"]),
-    )
-    monkeypatch.setattr(
-        core.trello, "get_cards", AsyncMock(return_value=[card] if existing else [])
-    )
-    monkeypatch.setattr(core.trello, "update_card", update := AsyncMock())
-    monkeypatch.setattr(
-        core.trello, "create_card", create := AsyncMock(return_value="new")
-    )
-    monkeypatch.setattr(core.trello, "join_card", join := AsyncMock())
-    monkeypatch.setattr(core.trello, "update_card_labels", labels := AsyncMock())
-    monkeypatch.setattr(
-        core.trello,
-        "update_card_attachments",
-        attachments := AsyncMock(return_value=["poster failed"]),
-    )
+    update = AsyncMock()
+    create = AsyncMock(return_value="new")
+    join = AsyncMock()
+    labels = AsyncMock()
+    attachments = AsyncMock(return_value=["poster failed"])
+    for name, handler in {
+        "check_username": AsyncMock(),
+        "get_working_lists_ids": AsyncMock(return_value=["inbox", "archive"]),
+        "get_cards": AsyncMock(return_value=[card] if existing else []),
+        "update_card": update,
+        "create_card": create,
+        "join_card": join,
+        "update_card_labels": labels,
+        "update_card_attachments": attachments,
+    }.items():
+        monkeypatch.setattr(core.trello, name, handler)
 
     messages = [
         message
@@ -144,24 +141,22 @@ async def test_process_inbox_skips_unlinked_cards_and_preserves_updates(
 ) -> None:
     card = {"id": "1", "name": "Old title", "desc": film["csfd_url"], "labels": []}
     skipped = {"id": "2", "name": "Unlinked", "desc": "", "labels": []}
-    monkeypatch.setattr(
-        core.trello,
-        "get_working_lists_ids",
-        AsyncMock(return_value=["inbox", "archive"]),
-    )
-    monkeypatch.setattr(core.trello, "get_old_cards", AsyncMock(return_value=[skipped]))
-    monkeypatch.setattr(core.trello, "archive_cards", archive := AsyncMock())
-    monkeypatch.setattr(
-        core.trello, "get_cards", AsyncMock(return_value=[card, skipped])
-    )
-    monkeypatch.setattr(core.trello, "update_card", update := AsyncMock())
-    monkeypatch.setattr(core.trello, "update_card_labels", labels := AsyncMock())
-    monkeypatch.setattr(
-        core.trello,
-        "update_card_attachments",
-        attachments := AsyncMock(return_value=[]),
-    )
-    monkeypatch.setattr(core.trello, "update_card_position", position := AsyncMock())
+    archive = AsyncMock()
+    update = AsyncMock()
+    labels = AsyncMock()
+    attachments = AsyncMock(return_value=[])
+    position = AsyncMock()
+    for name, handler in {
+        "get_working_lists_ids": AsyncMock(return_value=["inbox", "archive"]),
+        "get_old_cards": AsyncMock(return_value=[skipped]),
+        "archive_cards": archive,
+        "get_cards": AsyncMock(return_value=[card, skipped]),
+        "update_card": update,
+        "update_card_labels": labels,
+        "update_card_attachments": attachments,
+        "update_card_position": position,
+    }.items():
+        monkeypatch.setattr(core.trello, name, handler)
 
     # Bypass only the client-creation decorators; keep the real inbox workflow.
     await core.process_inbox.__wrapped__.__wrapped__(object(), object(), "board")
@@ -189,9 +184,7 @@ async def test_get_csfd_pages_reuses_redirect_aliases(
     parent = "https://www.csfd.cz/film/1/"
     first = {"request_url": base, "url": base, "html": object()}
     redirected = {"request_url": target, "url": parent, "html": object()}
-    session = type(
-        "Session", (), {"get_html": AsyncMock(side_effect=[first, redirected])}
-    )()
+    session = SimpleNamespace(get_html=AsyncMock(side_effect=[first, redirected]))
     monkeypatch.setattr(core.csfd, "parse_target_url", lambda html: target)
     monkeypatch.setattr(core.csfd, "get_parent_url", lambda url: parent)
 
