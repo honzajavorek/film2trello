@@ -1,0 +1,52 @@
+name: scripts-permissions-verify
+
+on:
+  push:
+    branches:
+      - claude/camoufox-fetch-retry
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.8.17"
+          enable-cache: true
+
+      - name: Install Python dependencies
+        run: uv sync --frozen
+
+      - name: Install Camoufox
+        run: |
+          for attempt in 1 2 3; do
+            GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" uv run camoufox fetch
+            if uv run python -c "from camoufox.pkgman import installed_verstr; installed_verstr()"; then
+              exit 0
+            fi
+            echo "camoufox fetch left no working install (attempt $attempt/3), retrying..."
+            sleep 5
+          done
+          echo "camoufox fetch failed to leave a working install after 3 attempts"
+          exit 1
+
+      - name: Restore film cache (sanity check under contents:read)
+        uses: actions/cache/restore@v6
+        with:
+          path: .cache
+          key: perm-verify-cache-${{ github.run_id }}
+          restore-keys: |
+            perm-verify-cache-
+
+      - name: Save film cache (sanity check under contents:read)
+        if: always()
+        uses: actions/cache/save@v6
+        with:
+          path: .cache
+          key: perm-verify-cache-${{ github.run_id }}
