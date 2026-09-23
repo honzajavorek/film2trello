@@ -128,20 +128,20 @@ async def get_csfd_pages(
 ) -> dict[str, csfd.Page]:
     urls: dict[str, csfd.Page] = {}
 
-    async def get_page(url: str, kind: str) -> csfd.Page:
+    async def get_page(url: str, reason: str | None = None) -> csfd.Page:
         if url not in urls:
-            if kind:
-                logger.info(f"Different {kind} URL, scraping: {url}")
+            if reason:
+                logger.info(f"{reason}, scraping: {url}")
             page = await session.get_html(url)
             urls[page["request_url"]] = urls[page["url"]] = page
         return urls[url]
 
-    csfd_page = await get_page(csfd_url, "")
+    csfd_page = await get_page(csfd_url)
 
     target_url = csfd.parse_target_url(csfd_page["html"])
-    target_page = await get_page(target_url, "target")
+    target_page = await get_page(target_url, reason="Different target URL")
     parent_url = csfd.get_parent_url(csfd_url)
-    parent_page = await get_page(parent_url, "parent")
+    parent_page = await get_page(parent_url, reason="Different parent URL")
 
     return {"target": target_page, "parent": parent_page}
 
