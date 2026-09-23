@@ -90,14 +90,15 @@ async def process_message(
     await trello.update_card_labels(trello_api, card_id, labels)
 
     yield "Updating attachments"
-    errors = await update_film_attachments(
+    errors = await trello.update_card_attachments(
         trello_api,
         scraper,
         card_id,
-        film,
-        [csfd_url, film["kvifftv_url"]],
+        list(filter(None, [csfd_url, film["kvifftv_url"]])),
+        film.get("poster_url"),
     )
     for error in errors:
+        logger.error(error)
         yield error
 
     yield f"Done! This is your card: {trello.get_card_url(card_id)}"
@@ -178,25 +179,6 @@ def get_labels(film: Film) -> list[dict[str, str]]:
     return labels
 
 
-async def update_film_attachments(
-    trello_api: httpx.AsyncClient,
-    scraper: httpx.AsyncClient,
-    card_id: str,
-    film: Film,
-    page_urls: list[str | None],
-) -> list[str]:
-    errors = await trello.update_card_attachments(
-        trello_api,
-        scraper,
-        card_id,
-        [url for url in page_urls if url],
-        film["poster_url"],
-    )
-    for error in errors:
-        logger.error(error)
-    return errors
-
-
 @trello.with_trello_api
 @http.with_scraper
 async def process_inbox(
@@ -234,13 +216,16 @@ async def process_inbox(
             card_data = trello.prepare_card_data(film["title"], film["csfd_url"])
             await trello.update_card(trello_api, card["id"], card_data)
             await trello.update_card_labels(trello_api, card["id"], get_labels(film))
-            await update_film_attachments(
+            page_urls = [csfd_url, film["kvifftv_url"], film["netflix_url"]]
+            errors = await trello.update_card_attachments(
                 trello_api,
                 scraper,
                 card["id"],
-                film,
-                [csfd_url, film["kvifftv_url"], film["netflix_url"]],
+                list(filter(None, page_urls)),
+                film.get("poster_url"),
             )
+            for error in errors:
+                logger.error(error)
 
             index.append((card, film))
             logger.info(f"Done! {trello.get_card_url(card['id'])}")
