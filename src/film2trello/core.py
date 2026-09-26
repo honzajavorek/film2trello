@@ -2,6 +2,7 @@ import asyncio
 import logging
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from datetime import UTC, datetime, timedelta
+from functools import partial
 from pprint import pformat
 from typing import TypedDict
 
@@ -56,8 +57,8 @@ async def process_message(
     csfd_url = await get_csfd_url(scraper, message_text)
 
     yield "Scraping information from CSFD.cz…"
-    async with csfd.browser_session() as session:
-        film = await get_film_by_url(csfd_url, session)
+    get_html = partial(csfd.fetch_page_as_telegram, scraper)
+    film = await get_film_by_url(csfd_url, get_html)
     logger.info(f"Film:\n{pformat(film)}")
 
     yield "Analyzing columns, assuming first is inbox and last is archive"
@@ -123,16 +124,17 @@ async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
     raise ValueError("Could not find a valid film URL")
 
 
-async def get_csfd_pages(
-    csfd_url: str, session: csfd.BrowserSession
-) -> dict[str, csfd.Page]:
+type GetHtml = Callable[[str], Awaitable[csfd.Page]]
+
+
+async def get_csfd_pages(csfd_url: str, get_html: GetHtml) -> dict[str, csfd.Page]:
     urls: dict[str, csfd.Page] = {}
 
     async def get_page(url: str, reason: str | None = None) -> csfd.Page:
         if url not in urls:
             if reason:
                 logger.info(f"{reason}, scraping: {url}")
-            page = await session.get_html(url)
+            page = await get_html(url)
             urls[page["request_url"]] = urls[page["url"]] = page
         return urls[url]
 
@@ -161,9 +163,9 @@ def get_film(pages: dict[str, csfd.Page]) -> Film:
     )
 
 
-async def get_film_by_url(csfd_url: str, session: csfd.BrowserSession) -> Film:
+async def get_film_by_url(csfd_url: str, get_html: GetHtml) -> Film:
     async def fetch_film() -> Film:
-        return get_film(await get_csfd_pages(csfd_url, session))
+        return get_film(await get_csfd_pages(csfd_url, get_html))
 
     return await get_or_fetch(f"film:{csfd_url}", fetch_film)
 
@@ -209,7 +211,7 @@ async def process_inbox(
                 continue
 
             logger.info(f"CSFD.cz URL: {csfd_url}")
-            film = await get_film_by_url(csfd_url, session)
+            film = await get_film_by_url(csfd_url, session.get_html)
             logger.info(f"Film:\n{pformat(film)}")
 
             logger.info(f"Updating: {card['name']} {trello.get_card_url(card['id'])}")

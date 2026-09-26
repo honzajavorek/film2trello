@@ -6,6 +6,7 @@ from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager
 from typing import Any, TypedDict
 
+import httpx
 from camoufox import DefaultAddons
 from camoufox.async_api import AsyncCamoufox
 from lxml import html
@@ -239,6 +240,28 @@ class Page(TypedDict):
 
 class DeniedError(RuntimeError):
     pass
+
+
+class AntibotError(RuntimeError):
+    pass
+
+
+# CSFD.cz's Anubis lets Telegram's link-preview crawler through without a
+# challenge. The bot fetches the very link it was sent in Telegram, so it
+# does so as that crawler with plain httpx - its free 256MB machine is far
+# too small to run a browser.
+TELEGRAM_USER_AGENT = "TelegramBot (like TwitterBot)"
+
+
+async def fetch_page_as_telegram(client: httpx.AsyncClient, url: str) -> Page:
+    logger.info("Loading %s as TelegramBot", url)
+    response = await client.get(url, headers={"User-Agent": TELEGRAM_USER_AGENT})
+    page_url = str(response.url)
+    page_html = html.fromstring(response.content)
+    if is_antibot_page(page_html):
+        raise AntibotError(f"CSFD.cz showed an anti-bot challenge for {url}")
+    page_html.make_links_absolute(page_url)
+    return Page(request_url=url, url=page_url, html=page_html)
 
 
 def is_antibot_page(page_html: html.HtmlElement) -> bool:

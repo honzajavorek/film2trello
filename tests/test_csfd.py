@@ -3,6 +3,7 @@ import logging
 from pathlib import Path
 from unittest.mock import AsyncMock
 
+import httpx
 import pytest
 from lxml import html
 
@@ -286,3 +287,36 @@ async def test_browser_session_open_times_out_when_launch_hangs(monkeypatch):
 
     with pytest.raises(TimeoutError):
         await csfd.BrowserSession().open()
+
+
+@pytest.mark.asyncio
+async def test_fetch_page_as_telegram_sends_telegram_user_agent():
+    content = (Path(__file__).parent / "csfd.html").read_bytes()
+    requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, content=content)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        page = await csfd.fetch_page_as_telegram(
+            client, "https://www.csfd.cz/film/1-film/"
+        )
+
+    assert requests[0].headers["User-Agent"] == "TelegramBot (like TwitterBot)"
+    assert page["request_url"] == "https://www.csfd.cz/film/1-film/"
+    assert page["url"] == "https://www.csfd.cz/film/1-film/"
+    assert csfd.parse_title(page["html"]).endswith("(1991)")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("fixture", ["csfd_antibot_cs.html", "csfd_antibot_en.html"])
+async def test_fetch_page_as_telegram_raises_on_antibot_page(fixture):
+    content = (Path(__file__).parent / fixture).read_bytes()
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, content=content)
+    )
+
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(csfd.AntibotError):
+            await csfd.fetch_page_as_telegram(client, "https://www.csfd.cz/film/1/")
