@@ -1,7 +1,4 @@
-import asyncio
-import logging
 from pathlib import Path
-from unittest.mock import AsyncMock
 
 import httpx
 import pytest
@@ -236,57 +233,6 @@ def test_is_antibot_page_detects_anubis_challenge(fixture_name):
 
 def test_is_antibot_page_ignores_regular_page(csfd_html):
     assert csfd.is_antibot_page(csfd_html) is False
-
-
-class FakePage:
-    def __init__(self, url: str) -> None:
-        self.url = url
-        self.closed = False
-
-    async def goto(self, url: str, **kwargs) -> None:
-        pass
-
-    def locator(self, selector: str):
-        return AsyncMock(count=AsyncMock(return_value=0))
-
-    async def title(self) -> str:
-        return "Film"
-
-    async def content(self) -> str:
-        return "<html><body>Film</body></html>"
-
-    async def close(self) -> None:
-        self.closed = True
-
-
-@pytest.mark.asyncio
-async def test_browser_session_get_html_logs_progress_and_closes_page(caplog):
-    page = FakePage("https://www.csfd.cz/film/1-film/prehled/")
-    session = csfd.BrowserSession()
-    session._browser = AsyncMock(new_page=AsyncMock(return_value=page))
-
-    with caplog.at_level(logging.INFO, logger="film2trello.csfd"):
-        await session.get_html("https://www.csfd.cz/film/1-film/")
-
-    assert page.closed
-    assert "Loading https://www.csfd.cz/film/1-film/ (attempt 1/3)" in caplog.text
-    assert "Loaded https://www.csfd.cz/film/1-film/prehled/ in" in caplog.text
-
-
-@pytest.mark.asyncio
-async def test_browser_session_open_times_out_when_launch_hangs(monkeypatch):
-    class HangingCamoufox:
-        def __init__(self, **kwargs) -> None:
-            pass
-
-        async def __aenter__(self):
-            await asyncio.sleep(3600)
-
-    monkeypatch.setattr(csfd, "AsyncCamoufox", HangingCamoufox)
-    monkeypatch.setattr(csfd, "LAUNCH_TIMEOUT", 0.01)
-
-    with pytest.raises(TimeoutError):
-        await csfd.BrowserSession().open()
 
 
 @pytest.mark.asyncio

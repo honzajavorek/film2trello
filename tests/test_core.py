@@ -1,6 +1,3 @@
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
@@ -28,7 +25,7 @@ async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
     )
     calls = []
 
-    async def fake_get_csfd_pages(csfd_url, get_html):
+    async def fake_get_csfd_pages(scraper, csfd_url):
         calls.append(csfd_url)
         return {}
 
@@ -36,9 +33,8 @@ async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
     monkeypatch.setattr(core, "get_film", lambda pages: film)
 
     url = film["csfd_url"]
-    get_html = AsyncMock()
-    first = await core.get_film_by_url(url, get_html)
-    second = await core.get_film_by_url(url, get_html)
+    first = await core.get_film_by_url(object(), url)
+    second = await core.get_film_by_url(object(), url)
 
     assert first == film
     assert second == film
@@ -80,19 +76,14 @@ def film() -> core.Film:
 
 
 @pytest.fixture
-def film_session(monkeypatch: pytest.MonkeyPatch, film: core.Film) -> None:
-    @asynccontextmanager
-    async def browser_session() -> AsyncIterator[object]:
-        yield SimpleNamespace(get_html=AsyncMock())
-
-    monkeypatch.setattr(core.csfd, "browser_session", browser_session)
+def scraped_film(monkeypatch: pytest.MonkeyPatch, film: core.Film) -> None:
     monkeypatch.setattr(core, "get_film_by_url", AsyncMock(return_value=film))
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("existing", [True, False])
 async def test_process_message_preserves_card_steps(
-    monkeypatch: pytest.MonkeyPatch, film_session: None, film: core.Film, existing: bool
+    monkeypatch: pytest.MonkeyPatch, scraped_film: None, film: core.Film, existing: bool
 ) -> None:
     card = {"id": "old", "name": film["title"], "desc": film["csfd_url"]}
     update = AsyncMock()
@@ -111,9 +102,6 @@ async def test_process_message_preserves_card_steps(
         "update_card_attachments": attachments,
     }.items():
         monkeypatch.setattr(core.trello, name, handler)
-
-    browser_session = AsyncMock(side_effect=AssertionError("no browser in the bot"))
-    monkeypatch.setattr(core.csfd, "browser_session", browser_session)
 
     messages = [
         message
@@ -140,7 +128,7 @@ async def test_process_message_preserves_card_steps(
 
 @pytest.mark.asyncio
 async def test_process_inbox_skips_unlinked_cards_and_preserves_updates(
-    monkeypatch: pytest.MonkeyPatch, film_session: None, film: core.Film
+    monkeypatch: pytest.MonkeyPatch, scraped_film: None, film: core.Film
 ) -> None:
     card = {"id": "1", "name": "Old title", "desc": film["csfd_url"], "labels": []}
     skipped = {"id": "2", "name": "Unlinked", "desc": "", "labels": []}
@@ -187,11 +175,12 @@ async def test_get_csfd_pages_reuses_redirect_aliases(
     parent = "https://www.csfd.cz/film/1/"
     first = {"request_url": base, "url": base, "html": object()}
     redirected = {"request_url": target, "url": parent, "html": object()}
-    get_html = AsyncMock(side_effect=[first, redirected])
+    fetch_page = AsyncMock(side_effect=[first, redirected])
+    monkeypatch.setattr(core.csfd, "fetch_page_as_telegram", fetch_page)
     monkeypatch.setattr(core.csfd, "parse_target_url", lambda html: target)
     monkeypatch.setattr(core.csfd, "get_parent_url", lambda url: parent)
 
-    pages = await core.get_csfd_pages(base, get_html)
+    pages = await core.get_csfd_pages(object(), base)
 
     assert pages == {"target": redirected, "parent": redirected}
-    assert get_html.await_count == 2
+    assert fetch_page.await_count == 2

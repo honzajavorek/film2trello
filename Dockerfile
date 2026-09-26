@@ -10,9 +10,7 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-# Install dependencies first (cached unless the lockfile changes). The bot
-# never launches a browser (see csfd.fetch_page_as_telegram), so Camoufox's
-# Firefox and its system libraries stay out of the image.
+# Install dependencies first (cached unless the lockfile changes)
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev --no-install-project
 
