@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-      - cron: "0 0 * * *"  # nightly
+      - cron: "0 0 */3 * *"  # every three days is enough
 
 jobs:
   build:
