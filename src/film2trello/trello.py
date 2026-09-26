@@ -122,15 +122,27 @@ async def join_card(
 
 async def update_card_labels(
     trello_api: httpx2.AsyncClient,
+    board_id: str,
     card_id: str,
     labels: list[dict],
 ) -> None:
     card_labels = (await trello_api.get(f"/cards/{card_id}/labels")).json()
     labels = get_missing_labels(card_labels, labels)
+    board_labels = (
+        await trello_api.get(f"/boards/{board_id}/labels", params={"limit": 1000})
+    ).json()
+    label_ids = get_label_ids_by_name(board_labels)
 
     async def update_label(label: dict) -> None:
         try:
-            await trello_api.post(f"/cards/{card_id}/labels", params=label)
+            # Creating a label always adds a new one to the board, so reuse
+            # the board's own label (and its color) whenever there is one
+            if label_id := label_ids.get(label["name"]):
+                await trello_api.post(
+                    f"/cards/{card_id}/idLabels", params={"value": label_id}
+                )
+            else:
+                await trello_api.post(f"/cards/{card_id}/labels", params=label)
         except httpx2.HTTPStatusError as e:
             if "label is already on the card" not in e.response.text:
                 raise
@@ -274,6 +286,16 @@ def get_duration_bracket(duration: int) -> str:
 def get_missing_labels(existing_labels: list[dict], labels: list[dict]) -> list[dict]:
     names = {label["name"] for label in existing_labels}
     return [label for label in labels if label["name"] not in names]
+
+
+def get_label_ids_by_name(board_labels: list[dict]) -> dict[str, str]:
+    """Map label names to IDs. If a name is on the board more than once, the
+    oldest label wins - Trello IDs start with a creation timestamp.
+    """
+    label_ids: dict[str, str] = {}
+    for label in sorted(board_labels, key=lambda label: label["id"]):
+        label_ids.setdefault(label["name"], label["id"])
+    return label_ids
 
 
 def get_missing_attached_urls(

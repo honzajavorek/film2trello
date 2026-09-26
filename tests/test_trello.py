@@ -1,3 +1,4 @@
+import httpx2
 import pytest
 
 from film2trello import trello
@@ -229,3 +230,47 @@ def test_has_poster():
 )
 def test_get_duration_bracket(duration, expected):
     assert trello.get_duration_bracket(duration) == expected
+
+
+def test_get_label_ids_by_name_prefers_oldest_duplicate():
+    # Trello IDs start with a creation timestamp, so the lowest ID is the
+    # label the board owner set up, not a duplicate created later.
+    board_labels = [
+        {"id": "6ab8000000000000000000bb", "name": "SERIÁL", "color": "black"},
+        {"id": "5c10000000000000000000aa", "name": "SERIÁL", "color": "lime_dark"},
+        {"id": "5c10000000000000000000cc", "name": "30m", "color": "sky"},
+    ]
+
+    assert trello.get_label_ids_by_name(board_labels) == {
+        "SERIÁL": "5c10000000000000000000aa",
+        "30m": "5c10000000000000000000cc",
+    }
+
+
+@pytest.mark.asyncio
+async def test_update_card_labels_reuses_board_labels_and_creates_missing():
+    board_labels = [{"id": "serial", "name": "SERIÁL", "color": "lime_dark"}]
+    posts = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        if request.method == "POST":
+            posts.append((request.url.path, dict(request.url.params)))
+            return httpx2.Response(200, json={})
+        if request.url.path == "/1/boards/board/labels":
+            return httpx2.Response(200, json=board_labels)
+        return httpx2.Response(200, json=[])
+
+    async with httpx2.AsyncClient(
+        base_url="https://trello.com/1/", transport=httpx2.MockTransport(handler)
+    ) as trello_api:
+        await trello.update_card_labels(
+            trello_api,
+            "board",
+            "card",
+            [{"name": "30m", "color": "sky"}, trello.TVSHOW_LABEL],
+        )
+
+    assert sorted(posts) == [
+        ("/1/cards/card/idLabels", {"value": "serial"}),
+        ("/1/cards/card/labels", {"name": "30m", "color": "sky"}),
+    ]

@@ -86,7 +86,7 @@ async def process_message(
 
     yield "Updating labels"
     labels = get_labels(film)
-    await trello.update_card_labels(trello_api, card_id, labels)
+    await trello.update_card_labels(trello_api, board_id, card_id, labels)
 
     yield "Updating attachments"
     errors = await trello.update_card_attachments(
@@ -213,7 +213,9 @@ async def process_inbox(
         logger.info(f"Updating: {card['name']} {trello.get_card_url(card['id'])}")
         card_data = trello.prepare_card_data(film["title"], film["csfd_url"])
         await trello.update_card(trello_api, card["id"], card_data)
-        await trello.update_card_labels(trello_api, card["id"], get_labels(film))
+        await trello.update_card_labels(
+            trello_api, board_id, card["id"], get_labels(film)
+        )
         page_urls = [csfd_url, film["kvifftv_url"], film["netflix_url"]]
         errors = await trello.update_card_attachments(
             trello_api,
