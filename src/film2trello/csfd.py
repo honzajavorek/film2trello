@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import re
+import time
 from collections.abc import AsyncGenerator, Generator
 from contextlib import asynccontextmanager
 from typing import Any, TypedDict
@@ -213,6 +215,10 @@ DENIED_TITLE = "Oh noes!"
 
 FETCH_ATTEMPTS = 3
 
+# Seconds. Launching the browser has no timeout of its own, so without one a
+# stuck launch (e.g. a starved machine) would hang the whole run silently.
+LAUNCH_TIMEOUT = 60
+
 
 class Page(TypedDict):
     request_url: str
@@ -239,12 +245,15 @@ async def _pass_challenge(page: PlaywrightPage, timeout: float = 60000) -> None:
     reach - gets the real page without reading it mid-reload.
     """
     if await page.locator(CHALLENGE_SELECTOR).count():
+        logger.info("Anubis challenge detected, solving it")
+        started = time.monotonic()
         await page.wait_for_function(
             "(sel) => !document.querySelector(sel)",
             arg=CHALLENGE_SELECTOR,
             timeout=timeout,
         )
         await page.wait_for_load_state("domcontentloaded", timeout=timeout)
+        logger.info("Anubis challenge solved in %.1fs", time.monotonic() - started)
     if await page.title() == DENIED_TITLE:
         body = await page.inner_text("body")
         raise DeniedError(body.strip().splitlines()[0] if body.strip() else "denied")
@@ -263,8 +272,12 @@ class BrowserSession:
         self._browser: PlaywrightBrowser | None = None
 
     async def open(self) -> None:
+        logger.info("Launching Camoufox browser")
+        started = time.monotonic()
         self._camoufox = AsyncCamoufox(headless=True, **LAUNCH_OPTIONS)
-        self._browser = await self._camoufox.__aenter__()
+        async with asyncio.timeout(LAUNCH_TIMEOUT):
+            self._browser = await self._camoufox.__aenter__()
+        logger.info("Browser launched in %.1fs", time.monotonic() - started)
 
     async def close(self) -> None:
         if self._camoufox is not None:
@@ -274,24 +287,29 @@ class BrowserSession:
 
     async def get_html(self, url: str, **kwargs: Any) -> Page:
         error: DeniedError | None = None
-        for _ in range(FETCH_ATTEMPTS):
+        kwargs.setdefault("wait_until", "domcontentloaded")
+        for attempt in range(1, FETCH_ATTEMPTS + 1):
             assert self._browser is not None, "call open() first"
+            logger.info("Loading %s (attempt %d/%d)", url, attempt, FETCH_ATTEMPTS)
+            started = time.monotonic()
             page = await self._browser.new_page()
-            kwargs.setdefault("wait_until", "domcontentloaded")
-            await page.goto(url, **kwargs)
             try:
+                await page.goto(url, **kwargs)
                 await _pass_challenge(page)
                 page_url = page.url
                 page_html = html.fromstring(await page.content())
                 page_html.make_links_absolute(page_url)
+                logger.info("Loaded %s in %.1fs", page_url, time.monotonic() - started)
                 return Page(request_url=url, url=page_url, html=page_html)
             except DeniedError as exc:
-                # Not recoverable within the same session - restart with a
-                # fresh browser, and so a fresh fingerprint and cookie jar.
-                logger.warning("Denied, restarting with a fresh session: %s", exc)
                 error = exc
-                await self.close()
-                await self.open()
+            finally:
+                await page.close()
+            # Not recoverable within the same session - restart with a
+            # fresh browser, and so a fresh fingerprint and cookie jar.
+            logger.warning("Denied, restarting with a fresh session: %s", error)
+            await self.close()
+            await self.open()
         raise error
 
 

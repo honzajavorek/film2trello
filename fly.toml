@@ -3,3 +3,8 @@ primary_region = "fra"
 kill_signal = "SIGINT"
 kill_timeout = "5s"
 processes = []
+
+# Camoufox runs a full Firefox, which stalls on the default 256MB machine
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
