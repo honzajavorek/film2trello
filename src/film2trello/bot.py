@@ -2,7 +2,7 @@ import html
 import logging
 from functools import partial
 
-import httpx
+import httpx2
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -95,8 +95,8 @@ async def help_command(
 @with_trello_api
 @with_scraper
 async def save(
-    scraper: httpx.AsyncClient,
-    trello_api: httpx.AsyncClient,
+    scraper: httpx2.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
     users: list[tuple[int, str]],

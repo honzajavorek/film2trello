@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 import click
-from httpx import HTTPStatusError
+from httpx2 import HTTPStatusError
 
 from film2trello.bot import run as run_bot
 from film2trello.core import process_inbox
@@ -53,7 +53,7 @@ def main(debug: bool) -> None:
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         level=logging.DEBUG if debug else logging.INFO,
     )
-    for logger_name in ["httpx"]:
+    for logger_name in ["httpx", "httpx2"]:
         logging.getLogger(logger_name).setLevel(logging.WARNING)
 
 

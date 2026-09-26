@@ -3,7 +3,7 @@ import re
 from collections.abc import Generator
 from typing import TypedDict
 
-import httpx
+import httpx2
 from lxml import html
 
 
@@ -198,7 +198,7 @@ def parse_is_tvshow(csfd_html: html.HtmlElement) -> bool:
 CHALLENGE_SELECTOR = "script#anubis_challenge"
 
 # CSFD.cz's Anubis lets Telegram's link-preview crawler through without a
-# challenge, so pages are fetched as that crawler with plain httpx. Before,
+# challenge, so pages are fetched as that crawler with plain httpx2. Before,
 # a full Camoufox browser solved the challenge - too heavy for the bot's
 # free 256MB Fly.io machine. If CSFD.cz ever closes this gap, see the git
 # history for that browser-based approach.
@@ -215,7 +215,7 @@ class AntibotError(RuntimeError):
     pass
 
 
-async def fetch_page_as_telegram(client: httpx.AsyncClient, url: str) -> Page:
+async def fetch_page_as_telegram(client: httpx2.AsyncClient, url: str) -> Page:
     logger.info("Loading %s as TelegramBot", url)
     response = await client.get(url, headers={"User-Agent": TELEGRAM_USER_AGENT})
     page_url = str(response.url)

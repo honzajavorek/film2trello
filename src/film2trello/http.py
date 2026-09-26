@@ -4,7 +4,7 @@ from collections.abc import Callable, Coroutine
 from functools import wraps
 from typing import Any
 
-import httpx
+import httpx2
 import stamina
 
 
@@ -12,11 +12,11 @@ logger = logging.getLogger("film2trello.http")
 
 
 class RateLimitedError(Exception):
-    def __init__(self, response: httpx.Response) -> None:
+    def __init__(self, response: httpx2.Response) -> None:
         self.response = response
 
 
-class RetryTransport(httpx.AsyncBaseTransport):
+class RetryTransport(httpx2.AsyncBaseTransport):
     """Retries safe requests that fail with transport-level errors such as
     timeouts (incl. ReadTimeout) or connection resets, and retries a 429
     response for GET/PUT. Every PUT this codebase sends replaces a resource
@@ -39,19 +39,19 @@ class RetryTransport(httpx.AsyncBaseTransport):
 
     def __init__(
         self,
-        transport: httpx.AsyncBaseTransport,
+        transport: httpx2.AsyncBaseTransport,
         attempts: int = 3,
     ) -> None:
         self.transport = transport
         self.attempts = attempts
 
-    async def handle_async_request(self, request: httpx.Request) -> httpx.Response:
-        async def send() -> httpx.Response:
+    async def handle_async_request(self, request: httpx2.Request) -> httpx2.Response:
+        async def send() -> httpx2.Response:
             if request.method not in self.SAFE_METHODS:
                 response = await self.transport.handle_async_request(request)
             else:
                 retry_transport_errors = stamina.retry(
-                    on=httpx.TransportError, attempts=self.attempts
+                    on=httpx2.TransportError, attempts=self.attempts
                 )(self.transport.handle_async_request)
                 response = await retry_transport_errors(request)
 
@@ -68,7 +68,7 @@ class RetryTransport(httpx.AsyncBaseTransport):
             return await retry_rate_limits()
         except RateLimitedError as exc:
             # Retries exhausted; hand back the still-429 response so callers
-            # see the same httpx.HTTPStatusError they'd get without any of
+            # see the same httpx2.HTTPStatusError they'd get without any of
             # this retrying (e.g. via the raise_on_error event hook).
             return exc.response
 
@@ -76,8 +76,8 @@ class RetryTransport(httpx.AsyncBaseTransport):
         await self.transport.aclose()
 
 
-def get_transport() -> httpx.AsyncBaseTransport:
-    return RetryTransport(httpx.AsyncHTTPTransport(http2=True))
+def get_transport() -> httpx2.AsyncBaseTransport:
+    return RetryTransport(httpx2.AsyncHTTPTransport(http2=True))
 
 
 BROWSER_PROFILES: tuple[dict[str, str], ...] = (
@@ -147,15 +147,15 @@ def get_default_headers() -> dict[str, str]:
     return {**BASE_HEADERS, **profile}
 
 
-def get_scraper() -> httpx.AsyncClient:
-    return httpx.AsyncClient(
+def get_scraper() -> httpx2.AsyncClient:
+    return httpx2.AsyncClient(
         follow_redirects=True,
         transport=get_transport(),
         event_hooks={"response": [raise_on_error]},
     )
 
 
-async def raise_on_error(response: httpx.Response) -> None:
+async def raise_on_error(response: httpx2.Response) -> None:
     if response.is_client_error or response.is_server_error:
         await response.aread()
         response.raise_for_status()

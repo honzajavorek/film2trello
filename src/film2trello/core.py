@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 from pprint import pformat
 from typing import TypedDict
 
-import httpx
+import httpx2
 from diskcache import Cache
 from lxml import html
 
@@ -43,8 +43,8 @@ class Film(TypedDict):
 
 
 async def process_message(
-    scraper: httpx.AsyncClient,
-    trello_api: httpx.AsyncClient,
+    scraper: httpx2.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     username: str,
     message_text: str,
     board_id: str,
@@ -103,7 +103,7 @@ async def process_message(
     yield f"Done! This is your card: {trello.get_card_url(card_id)}"
 
 
-async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
+async def get_csfd_url(scraper: httpx2.AsyncClient, message_text: str) -> str:
     if input_url := csfd.get_kvifftv_url(message_text):
 
         async def fetch_csfd_url() -> str:
@@ -123,7 +123,7 @@ async def get_csfd_url(scraper: httpx.AsyncClient, message_text: str) -> str:
 
 
 async def get_csfd_pages(
-    scraper: httpx.AsyncClient, csfd_url: str
+    scraper: httpx2.AsyncClient, csfd_url: str
 ) -> dict[str, csfd.Page]:
     urls: dict[str, csfd.Page] = {}
 
@@ -160,7 +160,7 @@ def get_film(pages: dict[str, csfd.Page]) -> Film:
     )
 
 
-async def get_film_by_url(scraper: httpx.AsyncClient, csfd_url: str) -> Film:
+async def get_film_by_url(scraper: httpx2.AsyncClient, csfd_url: str) -> Film:
     async def fetch_film() -> Film:
         return get_film(await get_csfd_pages(scraper, csfd_url))
 
@@ -181,8 +181,8 @@ def get_labels(film: Film) -> list[dict[str, str]]:
 @trello.with_trello_api
 @http.with_scraper
 async def process_inbox(
-    scraper: httpx.AsyncClient,
-    trello_api: httpx.AsyncClient,
+    scraper: httpx2.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     board_id: str,
     sort_cards: bool = True,
 ) -> None:

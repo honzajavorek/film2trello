@@ -1,6 +1,6 @@
 from unittest.mock import AsyncMock
 
-import httpx
+import httpx2
 import pytest
 from diskcache import Cache
 
@@ -45,14 +45,14 @@ async def test_get_film_by_url_skips_scraping_on_second_call(monkeypatch):
 async def test_get_csfd_url_caches_kvifftv_lookup():
     calls = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         calls.append(request)
-        return httpx.Response(
+        return httpx2.Response(
             200,
             content=b'<a href="https://www.csfd.cz/film/1-foo/">CSFD</a>',
         )
 
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as scraper:
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as scraper:
         message = "https://kviff.tv/katalog/foo"
         first = await core.get_csfd_url(scraper, message)
         second = await core.get_csfd_url(scraper, message)
