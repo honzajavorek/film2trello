@@ -6,6 +6,7 @@ on:
       - main
   schedule:
       - cron: "0 0 */3 * *"  # every three days is enough
+  workflow_dispatch:  # allows running this workflow manually from the Actions tab
 
 jobs:
   build:
