@@ -5,7 +5,7 @@
 - Keep changes small and code straightforward. Prefer a simple, explicit flow over a generic framework or a new abstraction used only once.
 - Keep I/O and orchestration at the edges; put parsing, decisions, and data transformations in small, typed functions that are easy to test.
 - Use Python type hints, keep branching shallow, and arrange functions from entry points to smaller helpers where practical.
-- Use the project's existing tools and conventions: `uv`, `click`, async `httpx`, and Ruff. Keep imports at module level and avoid `TYPE_CHECKING` blocks.
+- Use the project's existing tools and conventions: `uv`, `click`, async `httpx2`, and Ruff. Keep imports at module level and avoid `TYPE_CHECKING` blocks.
 - Preserve the observable bot messages, card creation/update order, inbox/archive behavior, sorting, and attachment differences between the bot and inbox paths. Treat CSFD fetching as TelegramBot and HTTP retry rules as intentional; read their comments and tests before changing them.
 - Log useful diagnostics without logging credentials or other secrets.
 

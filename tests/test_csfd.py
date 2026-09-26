@@ -1,6 +1,6 @@
 from pathlib import Path
 
-import httpx
+import httpx2
 import pytest
 from lxml import html
 
@@ -240,11 +240,11 @@ async def test_fetch_page_as_telegram_sends_telegram_user_agent():
     content = (Path(__file__).parent / "csfd.html").read_bytes()
     requests = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request)
-        return httpx.Response(200, content=content)
+        return httpx2.Response(200, content=content)
 
-    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+    async with httpx2.AsyncClient(transport=httpx2.MockTransport(handler)) as client:
         page = await csfd.fetch_page_as_telegram(
             client, "https://www.csfd.cz/film/1-film/"
         )
@@ -259,10 +259,10 @@ async def test_fetch_page_as_telegram_sends_telegram_user_agent():
 @pytest.mark.parametrize("fixture", ["csfd_antibot_cs.html", "csfd_antibot_en.html"])
 async def test_fetch_page_as_telegram_raises_on_antibot_page(fixture):
     content = (Path(__file__).parent / fixture).read_bytes()
-    transport = httpx.MockTransport(
-        lambda request: httpx.Response(200, content=content)
+    transport = httpx2.MockTransport(
+        lambda request: httpx2.Response(200, content=content)
     )
 
-    async with httpx.AsyncClient(transport=transport) as client:
+    async with httpx2.AsyncClient(transport=transport) as client:
         with pytest.raises(csfd.AntibotError):
             await csfd.fetch_page_as_telegram(client, "https://www.csfd.cz/film/1/")

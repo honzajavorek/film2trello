@@ -7,7 +7,7 @@ from functools import wraps
 from io import BytesIO
 from typing import Any, Literal
 
-import httpx
+import httpx2
 from PIL import Image
 
 from film2trello.http import get_default_headers, get_transport, raise_on_error
@@ -35,8 +35,8 @@ TVSHOW_LABEL = {"name": "SERIÁL", "color": "black"}
 AVAILABILITY_LABELS = ["KVIFF.TV", "NETFLIX", "STASH"]
 
 
-def get_trello_api(key: str, token: str) -> httpx.AsyncClient:
-    return httpx.AsyncClient(
+def get_trello_api(key: str, token: str) -> httpx2.AsyncClient:
+    return httpx2.AsyncClient(
         base_url="https://trello.com/1/",
         headers={
             "Authorization": f'OAuth oauth_consumer_key="{key}", oauth_token="{token}"',
@@ -61,7 +61,7 @@ def with_trello_api[R](
 
 
 async def check_username(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     board_id: str,
     username: str,
 ) -> None:
@@ -71,7 +71,7 @@ async def check_username(
 
 
 async def get_working_lists_ids(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     board_id: str,
 ) -> list[str]:
     lists = (await trello_api.get(f"/boards/{board_id}/lists")).json()
@@ -79,7 +79,7 @@ async def get_working_lists_ids(
 
 
 async def get_cards(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     lists_ids: list[str],
 ) -> list[dict]:
     responses = await asyncio.gather(
@@ -91,7 +91,7 @@ async def get_cards(
 
 
 async def update_card(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     card_id: str,
     card_data: dict,
 ) -> None:
@@ -99,7 +99,7 @@ async def update_card(
 
 
 async def create_card(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     card_data: dict,
 ) -> str:
     response = await trello_api.post("/cards", json=card_data)
@@ -107,7 +107,7 @@ async def create_card(
 
 
 async def join_card(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     card_id: str,
     username: str,
 ) -> None:
@@ -121,7 +121,7 @@ async def join_card(
 
 
 async def update_card_labels(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     card_id: str,
     labels: list[dict],
 ) -> None:
@@ -131,7 +131,7 @@ async def update_card_labels(
     async def update_label(label: dict) -> None:
         try:
             await trello_api.post(f"/cards/{card_id}/labels", params=label)
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             if "label is already on the card" not in e.response.text:
                 raise
 
@@ -139,8 +139,8 @@ async def update_card_labels(
 
 
 async def update_card_attachments(
-    trello_api: httpx.AsyncClient,
-    scraper: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
+    scraper: httpx2.AsyncClient,
     card_id: str,
     page_urls: list[str],
     poster_url: str | None = None,
@@ -161,13 +161,13 @@ async def update_card_attachments(
                 f"/cards/{card_id}/attachments",
                 files={"file": create_thumbnail(response.content)},
             )
-        except (httpx.HTTPStatusError, ValueError) as exc:
+        except (httpx2.HTTPStatusError, ValueError) as exc:
             return [f"Unable to update poster: {exc}"]
     return []
 
 
 async def update_card_position(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     card_id: str,
     position: int,
 ) -> None:
@@ -175,7 +175,7 @@ async def update_card_position(
 
 
 async def get_old_cards(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     inbox_list_id: str,
     before: date,
 ) -> list[dict]:
@@ -187,7 +187,7 @@ async def get_old_cards(
 
 
 async def archive_cards(
-    trello_api: httpx.AsyncClient,
+    trello_api: httpx2.AsyncClient,
     archive_list_id: str,
     cards: list[dict],
 ) -> None:
