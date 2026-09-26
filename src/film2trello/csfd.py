@@ -205,12 +205,11 @@ def parse_is_tvshow(csfd_html: html.HtmlElement) -> bool:
 # /.within.website/x/cmd/anubis/... - which strands the browser on the
 # challenge page instead of ever solving it.
 #
-# The bot runs on a free 256MB Fly.io machine, so the rest keeps Firefox
-# lean: no images (posters are read from srcset, never loaded) and a single
-# content process instead of one per site plus preallocated spares.
+# The bot runs on a free 256MB Fly.io machine, so the prefs keep Firefox
+# lean: a single content process instead of one per site plus preallocated
+# spares. Images stay on - Camoufox warns blocking them trips WAF detection.
 LAUNCH_OPTIONS: dict[str, Any] = {
     "exclude_addons": [DefaultAddons.UBO],
-    "block_images": True,
     "firefox_user_prefs": {
         "fission.autostart": False,
         "dom.ipc.processCount": 1,
