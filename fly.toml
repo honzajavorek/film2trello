@@ -4,7 +4,6 @@ kill_signal = "SIGINT"
 kill_timeout = "5s"
 processes = []
 
-# Camoufox runs a full Firefox, which stalls on the default 256MB machine
-[[vm]]
-  size = "shared-cpu-1x"
-  memory = "1gb"
+# Camoufox runs a full Firefox, which exhausts the free 256MB machine's RAM
+# and stalls. Swap is slow, but lets it finish without a paid machine.
+swap_size_mb = 1024
