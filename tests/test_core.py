@@ -113,7 +113,7 @@ async def test_process_message_preserves_card_steps(
     card_id = "old" if existing else "new"
     assert (update.await_count, create.await_count) == ((1, 0) if existing else (0, 1))
     assert join.await_args.args[1:] == (card_id, "alice")
-    assert labels.await_args.args[1:] == (card_id, core.get_labels(film))
+    assert labels.await_args.args[1:] == ("board", card_id, core.get_labels(film))
     assert attachments.await_args.args[2:] == (
         card_id,
         [film["csfd_url"], film["kvifftv_url"]],
@@ -157,7 +157,7 @@ async def test_process_inbox_skips_unlinked_cards_and_preserves_updates(
         "1",
         {"name": film["title"], "desc": film["csfd_url"]},
     )
-    assert labels.await_args.args[1:] == ("1", core.get_labels(film))
+    assert labels.await_args.args[1:] == ("board", "1", core.get_labels(film))
     assert attachments.await_args.args[2:] == (
         "1",
         [film["csfd_url"], film["kvifftv_url"], film["netflix_url"]],
