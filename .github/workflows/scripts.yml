@@ -5,7 +5,7 @@ on:
     branches:
       - main
   schedule:
-      - cron: "0 0 */3 * *"  # every three days is enough
+      - cron: "0 0 * * *"  # nightly
 
 jobs:
   build:
@@ -24,11 +24,6 @@ jobs:
 
       - name: Install Python dependencies
         run: uv sync --frozen
-
-      - name: Install Camoufox
-        # GITHUB_TOKEN avoids the ~60/hour anonymous GitHub API rate limit
-        # that was causing this step to silently fail to install anything.
-        run: GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" uv run camoufox fetch
 
       - name: Restore film cache
         uses: actions/cache/restore@v6

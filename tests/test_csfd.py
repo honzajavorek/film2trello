@@ -1,8 +1,6 @@
-import asyncio
-import logging
 from pathlib import Path
-from unittest.mock import AsyncMock
 
+import httpx
 import pytest
 from lxml import html
 
@@ -237,52 +235,34 @@ def test_is_antibot_page_ignores_regular_page(csfd_html):
     assert csfd.is_antibot_page(csfd_html) is False
 
 
-class FakePage:
-    def __init__(self, url: str) -> None:
-        self.url = url
-        self.closed = False
+@pytest.mark.asyncio
+async def test_fetch_page_as_telegram_sends_telegram_user_agent():
+    content = (Path(__file__).parent / "csfd.html").read_bytes()
+    requests = []
 
-    async def goto(self, url: str, **kwargs) -> None:
-        pass
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(200, content=content)
 
-    def locator(self, selector: str):
-        return AsyncMock(count=AsyncMock(return_value=0))
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        page = await csfd.fetch_page_as_telegram(
+            client, "https://www.csfd.cz/film/1-film/"
+        )
 
-    async def title(self) -> str:
-        return "Film"
-
-    async def content(self) -> str:
-        return "<html><body>Film</body></html>"
-
-    async def close(self) -> None:
-        self.closed = True
+    assert requests[0].headers["User-Agent"] == "TelegramBot (like TwitterBot)"
+    assert page["request_url"] == "https://www.csfd.cz/film/1-film/"
+    assert page["url"] == "https://www.csfd.cz/film/1-film/"
+    assert csfd.parse_title(page["html"]).endswith("(1991)")
 
 
 @pytest.mark.asyncio
-async def test_browser_session_get_html_logs_progress_and_closes_page(caplog):
-    page = FakePage("https://www.csfd.cz/film/1-film/prehled/")
-    session = csfd.BrowserSession()
-    session._browser = AsyncMock(new_page=AsyncMock(return_value=page))
+@pytest.mark.parametrize("fixture", ["csfd_antibot_cs.html", "csfd_antibot_en.html"])
+async def test_fetch_page_as_telegram_raises_on_antibot_page(fixture):
+    content = (Path(__file__).parent / fixture).read_bytes()
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, content=content)
+    )
 
-    with caplog.at_level(logging.INFO, logger="film2trello.csfd"):
-        await session.get_html("https://www.csfd.cz/film/1-film/")
-
-    assert page.closed
-    assert "Loading https://www.csfd.cz/film/1-film/ (attempt 1/3)" in caplog.text
-    assert "Loaded https://www.csfd.cz/film/1-film/prehled/ in" in caplog.text
-
-
-@pytest.mark.asyncio
-async def test_browser_session_open_times_out_when_launch_hangs(monkeypatch):
-    class HangingCamoufox:
-        def __init__(self, **kwargs) -> None:
-            pass
-
-        async def __aenter__(self):
-            await asyncio.sleep(3600)
-
-    monkeypatch.setattr(csfd, "AsyncCamoufox", HangingCamoufox)
-    monkeypatch.setattr(csfd, "LAUNCH_TIMEOUT", 0.01)
-
-    with pytest.raises(TimeoutError):
-        await csfd.BrowserSession().open()
+    async with httpx.AsyncClient(transport=transport) as client:
+        with pytest.raises(csfd.AntibotError):
+            await csfd.fetch_page_as_telegram(client, "https://www.csfd.cz/film/1/")

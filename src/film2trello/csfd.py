@@ -1,15 +1,10 @@
-import asyncio
 import logging
 import re
-import time
-from collections.abc import AsyncGenerator, Generator
-from contextlib import asynccontextmanager
-from typing import Any, TypedDict
+from collections.abc import Generator
+from typing import TypedDict
 
-from camoufox import DefaultAddons
-from camoufox.async_api import AsyncCamoufox
+import httpx
 from lxml import html
-from playwright.async_api import Browser as PlaywrightBrowser, Page as PlaywrightPage
 
 
 logger = logging.getLogger("film2trello.csfd")
@@ -200,35 +195,14 @@ def parse_is_tvshow(csfd_html: html.HtmlElement) -> bool:
     return False
 
 
-# Camoufox bundles uBlock Origin by default. It blocks Anubis's own challenge
-# script - served from a path generic filter lists flag as tracking, e.g.
-# /.within.website/x/cmd/anubis/... - which strands the browser on the
-# challenge page instead of ever solving it.
-#
-# The bot runs on a free 256MB Fly.io machine, so the prefs keep Firefox
-# lean: a single content process instead of one per site plus preallocated
-# spares. Images stay on - Camoufox warns blocking them trips WAF detection.
-LAUNCH_OPTIONS: dict[str, Any] = {
-    "exclude_addons": [DefaultAddons.UBO],
-    "firefox_user_prefs": {
-        "fission.autostart": False,
-        "dom.ipc.processCount": 1,
-        "dom.ipc.processPrelaunch.fission.number": 0,
-    },
-}
-
 CHALLENGE_SELECTOR = "script#anubis_challenge"
 
-# The title Anubis shows when it denies a request outright, without
-# offering a challenge to solve. Unlike the challenge, this isn't something
-# to wait out - the only known recovery is a fresh browser session.
-DENIED_TITLE = "Oh noes!"
-
-FETCH_ATTEMPTS = 3
-
-# Seconds. Launching the browser has no timeout of its own, so without one a
-# stuck launch (e.g. a starved machine) would hang the whole run silently.
-LAUNCH_TIMEOUT = 60
+# CSFD.cz's Anubis lets Telegram's link-preview crawler through without a
+# challenge, so pages are fetched as that crawler with plain httpx. Before,
+# a full Camoufox browser solved the challenge - too heavy for the bot's
+# free 256MB Fly.io machine. If CSFD.cz ever closes this gap, see the git
+# history for that browser-based approach.
+TELEGRAM_USER_AGENT = "TelegramBot (like TwitterBot)"
 
 
 class Page(TypedDict):
@@ -237,98 +211,20 @@ class Page(TypedDict):
     html: html.HtmlElement
 
 
-class DeniedError(RuntimeError):
+class AntibotError(RuntimeError):
     pass
+
+
+async def fetch_page_as_telegram(client: httpx.AsyncClient, url: str) -> Page:
+    logger.info("Loading %s as TelegramBot", url)
+    response = await client.get(url, headers={"User-Agent": TELEGRAM_USER_AGENT})
+    page_url = str(response.url)
+    page_html = html.fromstring(response.content)
+    if is_antibot_page(page_html):
+        raise AntibotError(f"CSFD.cz showed an anti-bot challenge for {url}")
+    page_html.make_links_absolute(page_url)
+    return Page(request_url=url, url=page_url, html=page_html)
 
 
 def is_antibot_page(page_html: html.HtmlElement) -> bool:
     return bool(page_html.cssselect(CHALLENGE_SELECTOR))
-
-
-async def _pass_challenge(page: PlaywrightPage, timeout: float = 60000) -> None:
-    """Wait out the challenge page, if one was shown; raise DeniedError if
-    Anubis denied the request outright instead.
-
-    The challenge computes a hash puzzle client-side, then reloads into the
-    real page once solved. Waiting for that reload's "domcontentloaded" -
-    not "load", which can hang on pages carrying ads/trackers that never
-    finish loading, nor "networkidle", which these sites' pages never
-    reach - gets the real page without reading it mid-reload.
-    """
-    if await page.locator(CHALLENGE_SELECTOR).count():
-        logger.info("Anubis challenge detected, solving it")
-        started = time.monotonic()
-        await page.wait_for_function(
-            "(sel) => !document.querySelector(sel)",
-            arg=CHALLENGE_SELECTOR,
-            timeout=timeout,
-        )
-        await page.wait_for_load_state("domcontentloaded", timeout=timeout)
-        logger.info("Anubis challenge solved in %.1fs", time.monotonic() - started)
-    if await page.title() == DENIED_TITLE:
-        body = await page.inner_text("body")
-        raise DeniedError(body.strip().splitlines()[0] if body.strip() else "denied")
-
-
-class BrowserSession:
-    """A Camoufox browser kept open across multiple fetches.
-
-    Anubis sets an auth cookie once a challenge is solved, so reusing one
-    browser (and its cookie jar) across many pages skips the puzzle after
-    the first solve instead of paying it on every single fetch.
-    """
-
-    def __init__(self) -> None:
-        self._camoufox: AsyncCamoufox | None = None
-        self._browser: PlaywrightBrowser | None = None
-
-    async def open(self) -> None:
-        logger.info("Launching Camoufox browser")
-        started = time.monotonic()
-        self._camoufox = AsyncCamoufox(headless=True, **LAUNCH_OPTIONS)
-        async with asyncio.timeout(LAUNCH_TIMEOUT):
-            self._browser = await self._camoufox.__aenter__()
-        logger.info("Browser launched in %.1fs", time.monotonic() - started)
-
-    async def close(self) -> None:
-        if self._camoufox is not None:
-            await self._camoufox.__aexit__(None, None, None)
-        self._camoufox = None
-        self._browser = None
-
-    async def get_html(self, url: str, **kwargs: Any) -> Page:
-        error: DeniedError | None = None
-        kwargs.setdefault("wait_until", "domcontentloaded")
-        for attempt in range(1, FETCH_ATTEMPTS + 1):
-            assert self._browser is not None, "call open() first"
-            logger.info("Loading %s (attempt %d/%d)", url, attempt, FETCH_ATTEMPTS)
-            started = time.monotonic()
-            page = await self._browser.new_page()
-            try:
-                await page.goto(url, **kwargs)
-                await _pass_challenge(page)
-                page_url = page.url
-                page_html = html.fromstring(await page.content())
-                page_html.make_links_absolute(page_url)
-                logger.info("Loaded %s in %.1fs", page_url, time.monotonic() - started)
-                return Page(request_url=url, url=page_url, html=page_html)
-            except DeniedError as exc:
-                error = exc
-            finally:
-                await page.close()
-            # Not recoverable within the same session - restart with a
-            # fresh browser, and so a fresh fingerprint and cookie jar.
-            logger.warning("Denied, restarting with a fresh session: %s", error)
-            await self.close()
-            await self.open()
-        raise error
-
-
-@asynccontextmanager
-async def browser_session() -> AsyncGenerator[BrowserSession]:
-    session = BrowserSession()
-    await session.open()
-    try:
-        yield session
-    finally:
-        await session.close()
